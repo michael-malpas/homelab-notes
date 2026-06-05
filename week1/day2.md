@@ -120,6 +120,7 @@ sudo passwd adminuser
 ```bash
 sudo  usermod -aG sudo adminuser
 groups adminuser
+```
 
 ## Tested admin account
 ```bash
@@ -191,7 +192,7 @@ Verified correction:
 grep michael /etc/passwd
 ```
 
-Corrected account information usingL:
+Corrected account information using:
 
 ```bash
 sudo vipw
@@ -214,7 +215,7 @@ sudo apt install tree
 tree /home
 ```
 
-## Inspeting Shadow Passwords
+## Inspecting Shadow Passwords
 ```bash
 sudo grep michael /etc/shadows
 ```
