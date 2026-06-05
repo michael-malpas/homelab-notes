@@ -37,5 +37,5 @@ Terraform
 ## Phase 5
 CI/CD
 
-##Phase 6 (possibly)
+## Phase 6 (possibly)
 Kubernetes
