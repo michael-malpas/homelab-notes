@@ -1,3 +1,14 @@
+# Day 2
+
+## User Management
+
+Commands practiced:
+- whoami
+- id
+- cat /etc/passwd
+- grep
+
+
 ## User Administration Exercise
 
 Discovered typo in GECOS field for primary account.
