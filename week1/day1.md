@@ -31,6 +31,11 @@ resources:
 - Configured SSH Access
 - Created lab directories
 - Setup SSH Access for github
+- Cloned repo from github
+- Created test.md
+- Test commit to github
+- Moved test.md into week1 folder
+- commited changes to github
 
 ---
 
@@ -87,11 +92,62 @@ cat ~/.ssh/id_ed25519.pub
 ## Added ssh key to gitub
 Settings > ssh keys > new key > ubuntu-devops-01 ssh access
 
+## Cloned github homelab-notes repo
+```bash
+git clone git@github.com/michael-malpas/homelab-notes.git
+```
+
+## Created test.md file
+```bash
+echo "# Test" > test.md
+```
+
+## Committed Change to git
+```bash
+git add .
+git commit -m "Initial Test Commit"
+git push
+```
+Received request for username, github was using https: url
+
+## Updated Git to use ssh url
+Retrieved ssh url from github.com
+```bash
+git remote -v
+git remote set-url origin git@github.com:michael-malpas/homelab-notes.git
+git remote -v
+```
+
+## Tested ssh auth to github
+```bash
+ssh -T git@github.com
+```
+
+## Moved test.md to week1 folder and git push
+```bash
+mv test.dm week1/
+git add .
+git commit -m "Test commit to change file structure"
+git status
+git push
+```
+
+## Updating Documentation and pushing to git
+```bash
+git add .
+git commit -m "Updating Day 1 documentation"
+git status
+git push
+```
+
 ---
+
 
 ## Notes
 
 SSH access is working successfully
+Git Access is working successfully
+cloned repo and able to push changes successfully
 
 Need to learn:
 - Permissions
