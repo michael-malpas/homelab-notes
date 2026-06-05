@@ -30,6 +30,7 @@ resources:
 - updated Packages
 - Configured SSH Access
 - Created lab directories
+- Setup SSH Access for github
 
 ---
 
