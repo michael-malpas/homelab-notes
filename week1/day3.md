@@ -262,3 +262,49 @@ systemctl enable SERVICE
 View Logs
 
 journalctl -u SERVICE
+
+
+## Git Commit troubleshooting
+
+When trying to gitpush received a warning that there were discrepancies
+
+Seeing what's different:
+```bash
+git log --oneline --graph --all --decorate -10
+```
+
+Found out of sync because of a README update on github
+
+Resolving:
+```bash
+git pull --rebase origin main
+```
+
+Pushing new commit
+```bash
+git push
+```
+
+Completed successfully.
+
+## Homelab automation for ssh-agent /key
+```bash
+nano ~/.bashrc
+```
+
+```bash
+# Start ssh-agent if not running
+if ! pgrep -u "$USER" ssh-agent > /dev/null; then
+    eval "$(ssh-agent -s)"
+fi
+
+# Add SSH key if not already loaded
+ssh-add -l >/dev/null 2>&1 || ssh-add ~/.ssh/id_ed25519
+```
+
+Reload shell:
+```bash
+source ~/.bashrc
+```
+
+Confirmed now prompts for passphrase then works as expected.
