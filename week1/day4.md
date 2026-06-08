@@ -240,7 +240,9 @@ sudo cp /etc/resolv.conf ~/resolv.conf.bak
 ```
 
 View:
-ccat /etc/resolv.conf
+```bash
+cat /etc/resolv.conf
+```
 
 Temporarily break DNS:
 ```bash
@@ -281,7 +283,7 @@ Works
 
 ## Troubleshooting Flowchart
 
-cannot reach application
+Cannot reach application:
 
 1. Is service running?
 
