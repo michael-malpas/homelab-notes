@@ -1,4 +1,4 @@
-#Day 4: Networking, DNS, Firewalls, and Connectivity Troubleshooting
+# Day 4: Networking, DNS, Firewalls, and Connectivity Troubleshooting
 
 ## Plan
 - DNS problems
