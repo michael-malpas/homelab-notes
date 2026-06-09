@@ -116,7 +116,7 @@ Improve:
 
 USAGE=$(df / | awk 'NR==2 {print $5}')
 
-echo "Root filesystemusage: $USAGE"
+echo "Root filesystem usage: $USAGE"
 ```
 awk to parse the text, NR== means consider line X (in this case 2). {print $5} = print field 5
 
