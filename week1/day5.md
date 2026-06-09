@@ -333,3 +333,72 @@ see day5-incident.md
 - user_report.sh
 - back_notes.sh
 - system_health.sh
+
+
+## Stretch Goal
+
+Create a script that checks:
+- ssh
+- nginx
+- cron
+service status
+
+```bash
+nano ~/scripts/service_status.sh
+#!/bin/bash
+
+SERVICES=("ssh" "nginx" "cron")
+
+for service in "${SERVICES[@]}"; do
+	status=$(systemctl is-active "$service")
+
+	if systemctl is-active --quiet $service
+	then
+		echo "[OK]	$service is running"
+	else
+		echo "[FAIL]	$service is NOT running (status: $status)"
+	fi
+done
+```
+
+## DevOps Challenge
+build: health_dashboard.sh
+requirements:
+- Check Disk usage
+- Check Memory
+- Check nginx
+- Check ssh
+- Check uptime
+- Write results to a log file
+
+```bash
+#!/bin/bash
+
+LOGFILE="$HOME/health_dashboard.log"
+SERVICES=("nginx" "ssh")
+
+exec >> "$LOGFILE" 2>&1
+
+echo "===== Health Report ====="
+echo
+
+date +%Y-%m-%d
+for service in "${SERVICES[@]}"; do
+	if systemctl is-active --quiet $service
+	then
+		echo "$service: Running"
+	else
+		echo "$service: Not Running"
+	fi
+done
+echo "Disk: $(df / | awk 'NR==2 {print $5}')"
+echo "Memory:"$(free | awk 'NR==2 {printf("%.2f%%\n", $3/$2 * 100)}')
+echo
+```
+
+- LOGFILE to move all output to a .log file instead of the console
+- use loop to check services and print output of service status
+- using df with awk to print disk usage %
+- using free with awk to print out a % usage of memory
+- printf uses formating % starts the formating, .2 says 2 decimals, %% escapes the formating to actual print a %
+- $3/$2 is diving used kb by total kb * 100 to make HR decimal
