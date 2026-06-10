@@ -203,3 +203,14 @@ sudo apt remove nginx
 systemctl status nginx
 ```
 
+## End-of-day Success Checklist
+- Create Branches
+- Merge Branches
+- Delete branches
+- Resolve merge conflicts
+- Use .gitignore
+- Understand PR workflows
+- Create a GitHub PR
+- Organize repository structure
+- Document infrastructure
+- Understand IaC concepts
