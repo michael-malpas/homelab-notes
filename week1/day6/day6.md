@@ -1,6 +1,6 @@
 # Day 6 - Git, Branching, Pull Requests, Intro to Infrastructure as Code
 
-## Goalss
+## Goals
 - Understand Git Workflows
 - Create and merge branches
 - Resolve merge conflicts
