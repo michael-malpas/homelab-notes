@@ -1,0 +1,12 @@
+---
+- name: Create Users
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Create devops user
+      user:
+        name: devopsuser
+        shell: /bin/bash
+        state: present

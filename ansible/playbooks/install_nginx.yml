@@ -1,0 +1,22 @@
+---
+- name: Install Nginx
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Start nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: UFW allow nginx
+      ufw:
+        rule: allow
+        port: "80"
+        proto: tcp

@@ -1,0 +1,20 @@
+---
+- name: Basic Hardening
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Ensure UFW installed
+      apt:
+        name: ufw
+        state: present
+
+    - name: Allow SSH
+      ufw:
+        rule: allow
+        port: "22"
+
+    - name: Enable firewall
+      ufw:
+        state: enabled

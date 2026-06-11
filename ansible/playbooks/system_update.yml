@@ -1,0 +1,9 @@
+---
+- name: Update System
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes

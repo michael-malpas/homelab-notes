@@ -1,0 +1,23 @@
+---
+- name: Build Server
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: preset
+
+    - name: Ensure nginx started
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Create devops user
+      user:
+        name: devopsuser
+        shell: /bin/bash
+        state: present

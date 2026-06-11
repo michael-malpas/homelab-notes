@@ -1,0 +1,10 @@
+---
+- name: Deploy MOTD
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Copy MOTD
+      copy:
+        src: ../files/motd.txt
+        dest: /tmp/motd.txt
