@@ -1,0 +1,10 @@
+services:
+
+  nginx:
+    image: nginx
+    container_name: nginx-compose
+    ports:
+      - "${WEB_PORT}:80"
+    volumes:
+      - "${NGINX_VOLUME}"
+
