@@ -39,3 +39,24 @@ CI/CD
 
 ## Phase 6 (possibly)
 Kubernetes
+
+
+# DevOps Homelab
+
+## Skills Covered
+
+- Linux
+- Git
+- Bash
+- Networking
+- Ansible
+- Docker
+- Docker Compose
+- Monitoring
+- GitHub Actions
+
+## Progress
+
+- Week 1 Complete
+- Week 2 In Progress
+[![Pipeline](https://github.com/michael-malpas/homelab-notes/actions/workflows/pipeline.yml/badge.svg)](https://github.com/michael-malpas/homelab-notes/actions/workflows/pipeline.yml)
