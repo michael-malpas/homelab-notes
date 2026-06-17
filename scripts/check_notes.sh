@@ -1,5 +1,7 @@
 #!/bin/bash
 
+exit 1
+
 echo "Checking markdown files..."
 
 count=$(find . -name "*.md" | wc -l)
