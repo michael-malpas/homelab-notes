@@ -41,7 +41,7 @@ CI/CD
 Kubernetes
 
 
-# DevOps Homelab
+# Homelab Status Report - 
 
 ## Skills Covered
 
