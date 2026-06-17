@@ -1,0 +1,40 @@
+---
+- name: Docker Compose Setup
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Install Docker Prerequisite packages
+      apt:
+        name:
+          - ca-certificates
+          - curl
+        state: present
+        update_cache: true
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Install Docker-Compose
+      apt:
+        name: docker-compose
+        state: present
+
+    - name: Ensure Docker Started
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Copy compose files
+      copy:
+        src: /home/michael/homelab-notes/week2/day9/compose-lab/.
+        dest: /home/michael/
+
+    - name: Run Docker Compose up -d
+      community.docker.docker_compose_v2:
+        project_src: /home/michael/compose-lab/
+        state: present
