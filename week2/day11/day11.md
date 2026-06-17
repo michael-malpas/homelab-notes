@@ -439,6 +439,66 @@ Pipeline succeeds
 
 This is a simplified infrastructure CI pipeline.
 
+```
+name: Challenge
+
+on:
+  push:
+
+jobs:
+
+  validate:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - run: ./scripts/check_notes.sh
+
+  dockerfile:
+
+    runs-on: ubuntu-latest
+
+    needs: validate
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - run: docker build -t devops-test .
+
+  dockercompose:
+
+    runs-on: ubuntu-latest
+
+    needs: dockerfile
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - run: docker compose config
+
+  ansiblesyntax:
+
+    runs-on: ubuntu-latest
+
+    needs: dockercompose
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - run: ansible-playbook --syntax-check playbook.yml
+```
+
+more can be done to refine this so it goes and finds the various compose and ansible palybook files
+
+This is simply proof of concept that provided a compose and a playbook file are in the directory that the workflow succeeds
+
+
 ## End-of-day Success Checklist
 - Understand CI/CD
 - Create GitHub Actions workflow
