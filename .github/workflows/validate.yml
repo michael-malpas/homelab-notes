@@ -1,0 +1,20 @@
+name: Validate Repository
+
+on:
+  push:
+
+jobs:
+  validate:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: List Files
+        run: ls -R
+
+      - name: Validate Markdown
+        run: find . -name "*.md"
