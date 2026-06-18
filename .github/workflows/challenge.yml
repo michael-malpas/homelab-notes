@@ -66,10 +66,10 @@ jobs:
       - name: Check for Terraform files
         id: tfcheck
         run: |
-          if find . name "*.tf" | grep -q .; then
+          if find . -name "*.tf" | grep -q .; then
             echo "found=true" >> $GITHUB_OUTPUT
           else
-            echo "found=false" >> $GITHUB_OUT
+            echo "found=false" >> $GITHUB_OUTPUT
           fi
 
 
