@@ -80,10 +80,8 @@ jobs:
       - name: Terraform Validate
         if: steps.tfcheck.outputs.found == 'true'
         run: |
-          for dir in $(find . -name "*.tf" -exec dirname {} \; | sort -u): do
+          for dir in $(find . -name "*.tf" -exec dirname {} \; | sort -u); do
             echo "Validating $dir"
-            cd "$dir"
-            terraform init -backend=false
-            terraform validate
-            cd -
+            terraform -chdir="$dir" init -backend=false
+            terraform -chdir="$dir" validate
           done
