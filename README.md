@@ -54,6 +54,10 @@ Kubernetes
 - Docker Compose
 - Monitoring
 - GitHub Actions
+- Terraform
+- AWS
+- Basic CI/CD
+- Basic IaC (Terraform > AWS)
 
 ## Progress
 
