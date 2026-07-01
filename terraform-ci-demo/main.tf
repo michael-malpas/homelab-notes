@@ -1,20 +1,20 @@
 terraform {
 
-	required_providers {
+  required_providers {
 
-		local = {
+    local = {
 
-		source = "hashicorp/local"
+      source = "hashicorp/local"
 
-		version = "~> 2.5"
-		}
-	}
+      version = "~> 2.5"
+    }
+  }
 }
 
 resource "local_file" "example" {
 
-	filename = "hello.txt"
+  filename = "hello.txt"
 
-	content = "Hello Github Actions!"
+  content = "Hello Github Actions!"
 
 }
