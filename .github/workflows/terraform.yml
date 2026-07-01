@@ -1,20 +1,34 @@
-name: Terraform Validation
+name: Terraform Validate
 
-on:
-  push:
+  on:
+    push:
+      branches:
+        - main
+        - day20-github-actions
 
-jobs:
+    pull_request:
 
-  terraform:
+  jobs:
 
-    runs-on: ubuntu-latest
+    terraform:
 
-    steps:
+      runs-on: ubuntu-latest
 
-      - uses: actions/checkout@v4
+      defaults:
+        run:
+          working-directory: terraform-ci-demo
 
-      - uses: hashicorp/setup-terraform@v3
 
-      - run: terraform fmt -check
+      steps:
 
-      - run: terraform validate
+        - name: Checkout Repository
+        - uses: actions/checkout@v4
+
+        - name: Setup Terraform
+        - uses: hashicorp/setup-terraform@v3
+
+        - name: Terraform Init
+        - uses: terraform init
+
+        - name: Terraform Validate
+        - uses: terraform validate
