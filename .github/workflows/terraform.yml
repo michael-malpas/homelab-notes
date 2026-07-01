@@ -1,28 +1,28 @@
 name: Terraform Validate
 
-  on:
-    push:
-      branches:
-        - main
-        - day20-github-actions
+on:
+  push:
+    branches:
+      - main
+      - day20-github-actions
 
-    pull_request:
+  pull_request:
 
-  jobs:
+jobs:
 
-    terraform:
+  terraform:
 
-      runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
 
-      defaults:
-        run:
-          working-directory: terraform-ci-demo
+    defaults:
+      run:
+        working-directory: terraform-ci-demo
 
 
-      steps:
+    steps:
 
-        - name: Checkout Repository
-        - uses: actions/checkout@v4
+      - name: Checkout Repository
+      - uses: actions/checkout@v4
 
         - name: Setup Terraform
         - uses: hashicorp/setup-terraform@v3
