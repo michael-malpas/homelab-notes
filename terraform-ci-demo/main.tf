@@ -17,3 +17,4 @@ resource "local_file" "example" {
 
 	content = "Hello Github Actions!"
 
+}
