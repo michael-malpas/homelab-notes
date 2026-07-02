@@ -1,0 +1,23 @@
+name: Validate Yaml
+
+on:
+  push:
+    branches:
+      - main
+      - day21-iac-pipeline
+
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install yamllint
+        run: |
+          sudo apt-get install -y yamllint
+
+      - name: Validate Yaml
+        run: yamllint .

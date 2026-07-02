@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - main
-      - day20-github-actions
+      - day21-iac-pipeline
+    paths:
+      - 'terraform-ci-demo/**'
 
   pull_request:
+    paths:
+      - 'terraform-ci-demo/**'
 
 jobs:
 
