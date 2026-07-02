@@ -2,12 +2,12 @@ name: Validate Yaml
 
 on:
   push:
-  branches:
-    - main
-    - day21-iac-pipeline
-  paths:
-    - 'terrform-ci-demo\**'
-    - 'ansible-demo\**'
+    branches:
+      - main
+      - day21-iac-pipeline
+    paths:
+      - 'terrform-ci-demo\**'
+      - 'ansible-demo\**'
 
   pull_request:
 
