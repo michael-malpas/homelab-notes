@@ -1,0 +1,17 @@
+extends: default
+
+ignore: |
+ .terraform/
+ node_modules/
+ vendor/
+ workflowbackups/
+
+rules:
+ truthy:
+  check-keys: false
+
+ line-length:
+  max: 120
+  level: warning
+
+ document-start: disable

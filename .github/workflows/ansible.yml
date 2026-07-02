@@ -1,0 +1,29 @@
+name: Ansible Validate
+
+on:
+  push:
+    paths:
+      - 'ansible-demo/**'
+    branches:
+      - main
+      - day21-iac-pipeline
+
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ansible-demo
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Validate Ansible Playbook
+        run: ansible-playbook playbook.yml --syntax-check

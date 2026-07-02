@@ -1,0 +1,12 @@
+---
+- name: Demo Playbook
+  hosts: localhost
+  connection: local
+
+  tasks:
+
+    - name: Display Message
+
+      debug:
+
+        msg: "GitHub Actions is validating Ansible!"
