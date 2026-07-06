@@ -1,3 +1,8 @@
 *.log
 *.tar.gz
 *.tmp
+*.pem
+*.tfvars
+terraform.tfstate
+terraform.tfstate.backup
+.env
