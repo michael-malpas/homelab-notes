@@ -55,11 +55,6 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -no-color
+        run: terraform plan -no-color -var-file="environments/dev.tfvars"
         env:
-          TF_VAR_aws_region: ${{ vars.AWS_REGION }}
-          TF_VAR_instance_type: ${{ vars.INSTANCE_TYPE }}
-          TF_VAR_key_name: ${{ vars.KEY_NAME }}
           TF_VAR_my_ip: ${{ secrets.MY_IP }}
-          TF_VAR_instance_count: ${{ vars.INSTANCE_COUNT }}
-          TF_VAR_server_name: ${{ vars.SERVER_NAME }}

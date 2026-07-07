@@ -21,3 +21,7 @@ variable "server_name" {
 variable "instance_count" {
   type = string
 }
+
+variable "environment" {
+  type = string
+}

@@ -68,7 +68,11 @@ resource "aws_instance" "web" {
   ]
 
   tags = {
-    Name = "${var.server_name}${count.index + 1}"
+    Name = "${var.environment}-${var.server_name}${count.index + 1}"
+
+    Environment = var.environment
+
+    ManagedBy = "Terraform"
   }
 
 }
@@ -84,4 +88,3 @@ resource "local_file" "ansible_inventory" {
     }
   )
 }
-
