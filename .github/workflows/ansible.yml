@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'ansible-demo/**'
+      - 'terraform-ci-demo/ansible/**'
     branches:
       - main
       - day21-iac-pipeline
@@ -15,7 +16,6 @@ jobs:
 
     defaults:
       run:
-        working-directory: ansible-demo
 
     steps:
       - uses: actions/checkout@v5
@@ -25,5 +25,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ansible
 
-      - name: Validate Ansible Playbook
+      - name: Validate ansible-demo Playbook
+        working-directory: ansible-demo
+        run: ansible-playbook playbook.yml --syntax-check
+
+      - name: Validate terraform-ci-demo ansible playbooks
+        working-directory: terraform-ci-demo/ansible
         run: ansible-playbook playbook.yml --syntax-check
