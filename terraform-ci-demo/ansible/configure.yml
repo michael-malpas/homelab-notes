@@ -1,0 +1,19 @@
+---
+- hosts: web
+
+  become: true
+
+  tasks:
+
+    - name: Deploy motd
+      copy:
+        dest: /etc/motd
+        content: |
+          Managed by Ansible
+          Day 18 Lab
+
+    - name: Ensure nginx is running
+      service:
+        name: nginx
+        state: started
+        enabled: true
