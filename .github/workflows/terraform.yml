@@ -21,7 +21,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: terraform-ci-demo
+        working-directory: terraform-ci-demo/terraform
 
 
     steps:
@@ -35,10 +35,10 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Init
         run: terraform init
