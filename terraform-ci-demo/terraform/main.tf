@@ -1,87 +1,87 @@
 terraform {
-        required_providers {
-                aws = {
-                        source = "hashicorp/aws"
-                        version = "~> 6.0"
-                }
-        }
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
 }
 
 provider "aws" {
-        region = var.aws_region
+  region = var.aws_region
 }
 
 data "aws_ami" "ubuntu" {
-        most_recent = true
+  most_recent = true
 
-        owners = ["099720109477"]
+  owners = ["099720109477"]
 
-        filter {
-                name = "name"
-                values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-*"]
-        }
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-*"]
+  }
 }
 
 resource "aws_security_group" "web" {
 
-	name = "day23-web-sg"
+  name = "day23-web-sg"
 
-	ingress {
-		from_port = 22
-		to_port = 22
-		protocol = "tcp"
+  ingress {
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
 
-		cidr_blocks = [var.my_ip]
-	}
+    cidr_blocks = [var.my_ip]
+  }
 
-	ingress {
-		from_port = 80
-		to_port = 80
-		protocol = "tcp"
+  ingress {
+    from_port = 80
+    to_port   = 80
+    protocol  = "tcp"
 
-		cidr_blocks = ["0.0.0.0/0"]
-	}
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-	egress {
-		from_port = 0
-		to_port = 0
-		protocol = "-1"
+  egress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
 
-		cidr_blocks = ["0.0.0.0/0"]
-	}
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_instance" "web" {
 
-	count = var.instance_count
+  count = var.instance_count
 
-	ami = data.aws_ami.ubuntu.id
+  ami = data.aws_ami.ubuntu.id
 
-	instance_type = var.instance_type
+  instance_type = var.instance_type
 
-	key_name = var.key_name
+  key_name = var.key_name
 
-	user_data = file("${path.module}/userdata.sh")
+  user_data = file("${path.module}/userdata.sh")
 
-	vpc_security_group_ids = [
-		aws_security_group.web.id
-	]
+  vpc_security_group_ids = [
+    aws_security_group.web.id
+  ]
 
-	tags = {
-		Name = "${var.server_name}${count.index + 1}"
-	}
-	
+  tags = {
+    Name = "${var.server_name}${count.index + 1}"
+  }
+
 }
 
 resource "local_file" "ansible_inventory" {
 
-	filename = "../ansible/inventory.ini"
+  filename = "../ansible/inventory.ini"
 
-	content = templatefile(
-		"${path.module}/inventory.tpl",
-		{
-			public_ips = aws_instance.web[*].public_ip
-		}
-	)
+  content = templatefile(
+    "${path.module}/inventory.tpl",
+    {
+      public_ips = aws_instance.web[*].public_ip
+    }
+  )
 }
 

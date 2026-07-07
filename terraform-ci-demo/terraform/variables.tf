@@ -1,23 +1,23 @@
 variable "aws_region" {
-	type = string
+  type = string
 }
 
 variable "instance_type" {
-	type = string
+  type = string
 }
 
 variable "key_name" {
-	type = string
+  type = string
 }
 
 variable "my_ip" {
-	type = string
+  type = string
 }
 
 variable "server_name" {
-	type = string
+  type = string
 }
 
 variable "instance_count" {
-	type = string
+  type = string
 }
