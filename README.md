@@ -63,6 +63,5 @@ Kubernetes
 
 - Week 1 Complete
 - Week 2 Complete
-[![Pipeline](https://github.com/michael-malpas/homelab-notes/actions/workflows/pipeline.yml/badge.svg)](https://github.com/michael-malpas/homelab-notes/actions/workflows/pipeline.yml)
-[![Challenge](https://github.com/michael-malpas/homelab-notes/actions/workflows/challenge.yml/badge.svg)](https://github.com/michael-malpas/homelab-notes/actions/workflows/challenge.yml)
-- Week 3 in progress
+- Week 3 Complete
+- Week 4 In Progress
