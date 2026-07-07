@@ -9,7 +9,7 @@ on:
       - main
       - day21-iac-pipeline
 
-  pull:
+  pull_request:
     paths:
       - 'ansible-demo/**'
       - 'terraform-ci-demo/ansible/**'
