@@ -8,7 +8,13 @@ on:
     branches:
       - main
       - day21-iac-pipeline
-
+on:
+  pull:
+    paths:
+      - 'ansible-demo/**'
+      - 'terraform-ci-demo/ansible/**'
+    branches:
+      - main
 
 jobs:
   validate:
