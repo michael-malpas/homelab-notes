@@ -73,6 +73,8 @@ resource "aws_instance" "web" {
     Environment = var.environment
 
     ManagedBy = "Terraform"
+
+    AutoDeployed = "True"
   }
 
 }

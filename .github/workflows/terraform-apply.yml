@@ -1,16 +1,12 @@
-name: Terraform Validate
+name: Terraform Apply
 
 on:
-  pull_request:
-
-    paths:
-      - 'terraform-ci-demo/**'
-
+  push:
     branches:
       - main
-jobs:
 
-  terraform:
+jobs:
+  apply:
 
     runs-on: ubuntu-latest
 
@@ -18,8 +14,10 @@ jobs:
       run:
         working-directory: terraform-ci-demo/terraform
 
-
     steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v6
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -29,22 +27,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Checkout Repository
-        uses: actions/checkout@v6
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Init
         run: terraform init
-
-      - name: Terraform Formatting
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Plan
-        run: terraform plan -no-color -var-file="environments/dev.tfvars"
         env:
           TF_VAR_my_ip: ${{ secrets.MY_IP }}
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve --var-file="environments/dev.tfvars"
