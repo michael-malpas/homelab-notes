@@ -1,14 +1,6 @@
 name: Ansible Validate
 
 on:
-  push:
-    paths:
-      - 'ansible-demo/**'
-      - 'terraform-ci-demo/ansible/**'
-    branches:
-      - main
-      - day21-iac-pipeline
-
   pull_request:
     paths:
       - 'ansible-demo/**'

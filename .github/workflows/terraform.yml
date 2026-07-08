@@ -1,16 +1,6 @@
 name: Terraform Validate
 
 on:
-
-  push:
-
-    branches:
-      - main
-      - day21-iac-pipeline
-
-    paths:
-      - 'terraform-ci-demo/**'
-
   pull_request:
 
     paths:

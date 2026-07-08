@@ -1,11 +1,6 @@
 name: Validate Yaml
 
 on:
-  push:
-    branches:
-      - main
-      - day21-iac-pipeline
-
   pull_request:
 
 jobs:
