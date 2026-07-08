@@ -74,7 +74,7 @@ resource "aws_instance" "web" {
 
     ManagedBy = "Terraform"
 
-    TestingComplete = "True
+    TestingComplete = "True"
 
     AutoDeployed = "True"
   }
