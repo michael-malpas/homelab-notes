@@ -32,8 +32,8 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-        env:
-          TF_VAR_my_ip: ${{ secrets.MY_IP }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve --var-file="environments/dev.tfvars"
+        env:
+          TF_VAR_my_ip: ${{ secrtes.MY_IP }}
