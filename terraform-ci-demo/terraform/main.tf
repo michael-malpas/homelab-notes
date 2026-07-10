@@ -51,34 +51,18 @@ resource "aws_security_group" "web" {
   }
 }
 
-resource "aws_instance" "web" {
+module "web" {
+  source = "./modules/ec2"
 
-  count = var.instance_count
-
-  ami = data.aws_ami.ubuntu.id
-
+  # Pass required variables here
+  instance_count = var.instance_count
+  ami_id = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
-
   key_name = var.key_name
-
   user_data = file("${path.module}/userdata.sh")
-
-  vpc_security_group_ids = [
-    aws_security_group.web.id
-  ]
-
-  tags = {
-    Name = "${var.environment}-${var.server_name}${count.index + 1}"
-
-    Environment = var.environment
-
-    ManagedBy = "Terraform"
-
-    TestingComplete = "True"
-
-    AutoDeployed = "True"
-  }
-
+  security_group_id= aws_security_group.web.id
+  server_name = var.server_name
+  environment = var.environment
 }
 
 resource "local_file" "ansible_inventory" {
@@ -88,7 +72,7 @@ resource "local_file" "ansible_inventory" {
   content = templatefile(
     "${path.module}/inventory.tpl",
     {
-      public_ips = aws_instance.web[*].public_ip
+      public_ips = module.web.public_ips
     }
   )
 }

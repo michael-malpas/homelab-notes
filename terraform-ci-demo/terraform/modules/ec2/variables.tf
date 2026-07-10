@@ -1,0 +1,32 @@
+variable "instance_count" {
+  type = number
+}
+
+variable "ami_id" {
+  type = string
+}
+
+variable "instance_type" {
+  type = string
+}
+
+variable "key_name" {
+  type = string
+}
+
+variable "user_data" {
+  type = string
+}
+
+variable "security_group_id" {
+  type = string
+}
+
+variable "environment" {
+  type = string
+}
+
+variable "server_name" {
+  type = string
+}
+
