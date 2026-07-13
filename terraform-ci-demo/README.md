@@ -4,9 +4,11 @@
 
 This project demonstrates a production-inspired Infrastructure as Code (IaC) workflow using **Terraform**, **GitHub Actions**, **AWS**, and **Ansible**.
 
-The goal is to provision AWS infrastructure using Terraform while automating validation, planning, and deployment through a CI/CD pipeline. Infrastructure changes are reviewed through pull requests before being automatically applied after merging into the `main` branch, following common DevOps practices.
+The project provisions AWS infrastructure using Terraform while automating validation, planning, and deployment through a CI/CD pipeline. Infrastructure changes are reviewed through pull requests before being deployed, with protected production approvals implemented using GitHub Environments.
 
-The project is part of my ongoing DevOps homelab and is designed to showcase infrastructure automation, secure secret management, and CI/CD best practices rather than simply provisioning cloud resources.
+As the project evolved, the Terraform configuration was refactored into reusable modules and extended to support multiple deployment environments, following practices commonly used by professional DevOps teams.
+
+This repository is part of my ongoing DevOps homelab and focuses on building production-inspired automation rather than simply provisioning cloud resources.
 
 ---
 
@@ -28,6 +30,10 @@ The project is part of my ongoing DevOps homelab and is designed to showcase inf
                                               Merge into main
                                                      │
                                                      ▼
+                                           GitHub Environment
+                                           (Production Approval)
+                                                     │
+                                                     ▼
                                              Terraform Apply
                                                      │
                                                      ▼
@@ -45,11 +51,12 @@ The project is part of my ongoing DevOps homelab and is designed to showcase inf
 # Features
 
 * Infrastructure as Code using Terraform
-* Automated infrastructure validation
+* Reusable Terraform modules
+* Multi-environment deployments using environment-specific variable files
+* Automated Terraform validation
 * Automated Terraform execution plans
-* Automated infrastructure deployment after merge
-* AWS authentication through GitHub Secrets
-* Environment-specific configuration using Terraform variable files
+* Protected production deployments using GitHub Environments
+* AWS authentication using GitHub Secrets
 * Remote Terraform state stored in Amazon S3
 * Terraform state locking using the S3 lockfile mechanism
 * Infrastructure configuration using Ansible
@@ -77,6 +84,11 @@ The project is part of my ongoing DevOps homelab and is designed to showcase inf
 ## CI/CD
 
 * GitHub Actions
+
+## Version Control
+
+* Git
+* GitHub
 
 ## Operating System
 
@@ -107,7 +119,16 @@ terraform-ci-demo/
     ├── variables.tf
     ├── inventory.tpl
     ├── userdata.sh
-    └── environments/
+    │
+    ├── environments/
+    │   ├── dev.tfvars
+    │   └── prod.tfvars
+    │
+    └── modules/
+        └── ec2/
+            ├── main.tf
+            ├── variables.tf
+            └── outputs.tf
 ```
 
 ---
@@ -119,9 +140,19 @@ The Terraform configuration provisions AWS infrastructure including:
 * EC2 instances
 * Security Groups
 * Remote Terraform state stored in Amazon S3
-* Terraform lockfile support using S3
+* Terraform state locking using the S3 lockfile mechanism
 
-Terraform variables are defined in `variables.tf`, while environment-specific values are stored separately using `.tfvars` files. This allows the same Terraform configuration to be reused across multiple environments without modifying the infrastructure code.
+Infrastructure configuration remains separate from deployment configuration through the use of environment-specific Terraform variable files.
+
+---
+
+# Terraform Modules
+
+The project uses Terraform modules to improve code organization and reusability.
+
+The EC2 instance configuration has been refactored into a reusable child module while the root module remains responsible for provider configuration, networking resources, environment-specific configuration, and module orchestration.
+
+This modular design reduces duplication, improves readability, and makes the infrastructure easier to extend as additional AWS resources are introduced.
 
 ---
 
@@ -129,7 +160,7 @@ Terraform variables are defined in `variables.tf`, while environment-specific va
 
 ## terraform.yml
 
-Runs during pull requests and performs infrastructure validation.
+Runs during pull requests and validates infrastructure changes before deployment.
 
 Stages include:
 
@@ -137,21 +168,21 @@ Stages include:
 * Terraform validation (`terraform validate`)
 * Terraform planning (`terraform plan`)
 
-This workflow ensures infrastructure changes are reviewed before deployment.
+This workflow allows infrastructure changes to be reviewed before deployment.
 
 ---
 
 ## terraform-apply.yml
 
-Runs after approved code is merged into the `main` branch.
+Runs after code has been merged into the `main` branch and deployment has been approved through the configured GitHub Environment.
 
 Stages include:
 
 * Configure AWS credentials
 * Initialize Terraform
-* Apply infrastructure changes automatically
+* Terraform Apply
 
-Separating planning from deployment reflects common enterprise Infrastructure as Code workflows.
+The workflow uses GitHub Environment protection rules to require manual approval before infrastructure changes are deployed, adding an additional safeguard for production infrastructure.
 
 ---
 
@@ -169,7 +200,7 @@ Runs Yamllint against repository YAML files to maintain consistent formatting an
 
 ## secrets-test.yml
 
-Verifies that GitHub Actions can securely authenticate with AWS using repository secrets.
+Verifies that GitHub Actions can successfully authenticate with AWS using repository secrets.
 
 ---
 
@@ -199,9 +230,15 @@ Code Review
 Merge into main
      │
      ▼
-GitHub Actions
+GitHub Environment
 
- • Terraform Apply
+     │
+     ▼
+Manual Approval
+
+     │
+     ▼
+Terraform Apply
 
      │
      ▼
@@ -223,16 +260,21 @@ AWS Infrastructure Updated
 
 ---
 
-## Repository Configuration
+# Repository Configuration
 
-Sensitive information is **not** stored in the repository.
+Sensitive information is **never stored within the repository**.
 
 GitHub Secrets are used for credentials such as:
 
 * `AWS_ACCESS_KEY_ID`
 * `AWS_SECRET_ACCESS_KEY`
 
-Environment-specific Terraform values are stored in environment variable files (for example, `dev.tfvars` or `prod.tfvars`) and supplied during deployment rather than committed directly into the Terraform configuration.
+Environment-specific configuration is stored in Terraform variable files such as:
+
+* `dev.tfvars`
+* `prod.tfvars`
+
+This allows the same Terraform codebase to deploy multiple environments while keeping infrastructure code separate from deployment configuration.
 
 ---
 
@@ -240,17 +282,29 @@ Environment-specific Terraform values are stored in environment variable files (
 
 ## Separate Terraform Plan and Apply
 
-The project intentionally separates infrastructure validation from deployment.
+Infrastructure validation and deployment are intentionally separated.
 
-Pull requests generate a Terraform execution plan so infrastructure changes can be reviewed before they are merged. Only after approval and merging into the `main` branch does GitHub Actions automatically apply the changes.
+Pull requests generate Terraform execution plans, allowing infrastructure changes to be reviewed before deployment.
 
-This mirrors the deployment workflow used by many engineering teams and reduces the risk of unintended infrastructure modifications.
+Only after approval and merging into the `main` branch does the deployment workflow execute.
+
+This mirrors common enterprise Infrastructure as Code workflows and reduces deployment risk.
+
+---
+
+## GitHub Environment Protection
+
+Production deployments are protected using GitHub Environments.
+
+Infrastructure changes require manual approval before Terraform Apply is allowed to execute.
+
+Introducing deployment approval gates helps reduce operational risk while maintaining the benefits of automation.
 
 ---
 
 ## Remote Terraform State
 
-Terraform uses a remote backend stored in Amazon S3.
+Terraform stores its remote state within Amazon S3.
 
 Using remote state allows infrastructure to be managed consistently across multiple environments and CI runners while preventing state drift.
 
@@ -258,23 +312,65 @@ The project uses Terraform's modern S3 lockfile mechanism instead of the legacy 
 
 ---
 
+## Terraform Modules
+
+Reusable Terraform modules improve maintainability by separating reusable infrastructure from deployment logic.
+
+The root module coordinates infrastructure while child modules provision specific resources such as EC2 instances.
+
+This approach reduces duplication and simplifies future expansion.
+
+---
+
 ## Environment Separation
 
-Terraform variables are separated from infrastructure code.
+The project uses a single Terraform codebase for both Development and Production environments.
 
-This makes it possible to deploy different environments (such as development and production) using the same Terraform configuration while supplying different configuration values.
+Environment-specific configuration is supplied using dedicated `.tfvars` files rather than maintaining separate Terraform projects.
+
+This minimizes duplication while ensuring infrastructure changes remain consistent across environments.
+
+---
+
+# Screenshots
+
+## GitHub Actions Pipeline
+
+*Screenshot placeholder*
+
+---
+
+## Terraform Plan
+
+*Screenshot placeholder*
+
+---
+
+## GitHub Environment Approval
+
+*Screenshot placeholder*
+
+---
+
+## AWS EC2 Instance
+
+*Screenshot placeholder*
 
 ---
 
 # Skills Demonstrated
 
 * Infrastructure as Code (Terraform)
+* Terraform Modules
+* Multi-Environment Infrastructure
 * AWS Infrastructure Provisioning
 * Remote Terraform State Management
 * Terraform State Locking
 * GitHub Actions
 * Continuous Integration
 * Continuous Deployment
+* Deployment Approvals
+* GitHub Environments
 * Infrastructure Validation
 * Infrastructure Review Workflows
 * AWS IAM Authentication
@@ -290,13 +386,14 @@ This makes it possible to deploy different environments (such as development and
 
 Planned enhancements include:
 
-* GitHub Environments with deployment approvals
 * OpenID Connect (OIDC) authentication for GitHub Actions
-* Terraform modules
-* Multiple deployment environments
+* Terraform module registry structure
 * Infrastructure testing
 * Automated security scanning
-* Cost optimization checks
+* Cost optimization monitoring
+* AWS Load Balancer integration
+* Route 53 DNS management
+* TLS certificate management
 * Kubernetes deployment
 * Monitoring and observability integration
 
@@ -310,7 +407,10 @@ Building this project reinforced several important DevOps concepts:
 * Validation and deployment should be separate stages within a CI/CD pipeline.
 * Secrets should never be committed to source control.
 * Infrastructure changes should be reviewed before deployment.
-* Automation should improve reliability while maintaining operational safeguards.
+* Modular infrastructure is easier to maintain than large monolithic Terraform configurations.
+* Separating configuration from infrastructure code enables consistent multi-environment deployments.
+* Deployment approvals provide an additional layer of operational safety for automated infrastructure changes.
+* Automation should improve reliability while maintaining appropriate operational safeguards.
 * Well-documented projects are easier to maintain, troubleshoot, and demonstrate to prospective employers.
 
 ---
