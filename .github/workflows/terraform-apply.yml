@@ -41,7 +41,6 @@ jobs:
         env:
           TF_VAR_my_ip: ${{ secrets.MY_IP }}
 
-jobs:
   apply-prod:
 
     needs: apply-dev
