@@ -6,8 +6,44 @@ on:
       - main
 
 jobs:
-  apply:
+  apply-dev:
 
+    runs-on: ubuntu-latest
+
+    environment:
+      name: development
+
+    defaults:
+      run:
+        working-directory: terraform-ci-demo/terraform
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve --var-file="environments/dev.tfvars"
+        env:
+          TF_VAR_my_ip: ${{ secrets.MY_IP }}
+
+  apply-prod:
+
+    needs: apply-dev
     runs-on: ubuntu-latest
 
     environment:
@@ -37,6 +73,6 @@ jobs:
         run: terraform init
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve --var-file="environments/dev.tfvars"
+        run: terraform apply -auto-approve --var-file="environments/prod.tfvars"
         env:
           TF_VAR_my_ip: ${{ secrets.MY_IP }}
