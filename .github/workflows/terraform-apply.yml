@@ -34,7 +34,7 @@ jobs:
         uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config="backend/dev.hcl"
 
       - name: Terraform Apply
         run: terraform apply -auto-approve --var-file="environments/dev.tfvars"
@@ -70,7 +70,7 @@ jobs:
         uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init backend-config="backend/prod.hcl"
 
       - name: Terraform Apply
         run: terraform apply -auto-approve --var-file="environments/prod.tfvars"
