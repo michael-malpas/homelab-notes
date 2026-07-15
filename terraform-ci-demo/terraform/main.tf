@@ -24,7 +24,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_security_group" "web" {
 
-  name = "day23-web-sg"
+  name = "${var.environment}-web-sg"
 
   ingress {
     from_port = 22
