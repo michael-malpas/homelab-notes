@@ -36,7 +36,7 @@ jobs:
         uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config="backend/dev.hcl"
 
       - name: Terraform Formatting
         run: terraform fmt -check -recursive
