@@ -72,7 +72,7 @@ resource "local_file" "ansible_inventory" {
   content = templatefile(
     "${path.module}/inventory.tpl",
     {
-      public_ips = module.web.public_ips
+      public_ips = sort(module.web.public_ips)
     }
   )
 }
