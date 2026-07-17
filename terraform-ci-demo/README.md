@@ -4,64 +4,91 @@
 
 This project demonstrates a production-inspired Infrastructure as Code (IaC) workflow using **Terraform**, **GitHub Actions**, **AWS**, and **Ansible**.
 
-The project provisions AWS infrastructure using Terraform while automating validation, planning, and deployment through a CI/CD pipeline. Infrastructure changes are reviewed through pull requests before being deployed, with protected production approvals implemented using GitHub Environments.
+The project provisions AWS infrastructure with Terraform while automating validation, planning, approval, and deployment through GitHub Actions. Infrastructure changes are reviewed through pull requests before being promoted through Development and Production deployment workflows.
 
-As the project evolved, the Terraform configuration was refactored into reusable modules and extended to support multiple deployment environments, following practices commonly used by professional DevOps teams.
+The repository has evolved beyond basic infrastructure provisioning and now incorporates several modern DevOps practices, including:
 
-This repository is part of my ongoing DevOps homelab and focuses on building production-inspired automation rather than simply provisioning cloud resources.
+* Infrastructure as Code using Terraform
+* Modular Terraform architecture
+* Remote Terraform state stored in Amazon S3
+* Environment-specific deployments
+* GitHub Actions CI/CD pipelines
+* Manual approval gates for Production
+* OpenID Connect (OIDC) authentication with AWS
+* IAM role-based deployments using temporary credentials
+* Infrastructure validation and YAML linting
+* Ansible configuration management
+
+The project is part of my ongoing DevOps homelab and is intended to demonstrate enterprise-inspired infrastructure automation, cloud security, CI/CD workflows, and operational best practices.
 
 ---
 
 # Architecture
 
 ```text
-                        GitHub Repository
-                               │
-                               ▼
-                      GitHub Actions Pipeline
-                               │
-        ┌──────────────────────┼──────────────────────┐
-        │                      │                      │
-        ▼                      ▼                      ▼
- Terraform fmt        Terraform validate     Terraform plan
-                                                     │
-                                              Pull Request Review
-                                                     │
-                                              Merge into main
-                                                     │
-                                                     ▼
-                                           GitHub Environment
-                                           (Production Approval)
-                                                     │
-                                                     ▼
-                                             Terraform Apply
-                                                     │
-                                                     ▼
-                                                   AWS
-                                                     │
-                                                     ▼
-                                              EC2 Infrastructure
-                                                     │
-                                                     ▼
-                                           Ansible Configuration
+                         GitHub Repository
+                                │
+                                ▼
+                      Pull Request / Merge
+                                │
+                                ▼
+                     GitHub Actions Workflows
+                                │
+        ┌───────────────────────┼────────────────────────┐
+        │                       │                        │
+        ▼                       ▼                        ▼
+ Terraform fmt          Terraform validate      Terraform plan
+                                │
+                                ▼
+                        Pull Request Review
+                                │
+                           Merge to main
+                                │
+                                ▼
+                     GitHub OIDC Authentication
+                                │
+                                ▼
+                  AWS IAM Role (Development)
+                                │
+                                ▼
+                  Temporary AWS Credentials
+                                │
+                                ▼
+                         Terraform Apply
+                                │
+                                ▼
+                      AWS Infrastructure
+                                │
+                                ▼
+                   Ansible Configuration
+```
+Note:
+```text
+Production deployments use a separate IAM role with GitHub Environment approval to simulate a multi-account enterprise deployment strategy.
 ```
 
 ---
 
 # Features
 
-* Infrastructure as Code using Terraform
-* Reusable Terraform modules
-* Multi-environment deployments using environment-specific variable files
-* Automated Terraform validation
-* Automated Terraform execution plans
-* Protected production deployments using GitHub Environments
-* AWS authentication using GitHub Secrets
-* Remote Terraform state stored in Amazon S3
-* Terraform state locking using the S3 lockfile mechanism
-* Infrastructure configuration using Ansible
-* Modular GitHub Actions workflows
-* YAML validation for workflow files
+- Infrastructure as Code using Terraform
+- Modular Terraform architecture
+- Remote Terraform state stored in Amazon S3
+- Terraform state locking using S3 lockfiles
+- Environment-specific configuration
+- GitHub Actions CI/CD pipelines
+- Automated Terraform formatting
+- Automated Terraform validation
+- Automated Terraform planning
+- Automated Terraform deployment
+- Pull request review workflow
+- Manual Production approval gates
+- GitHub OIDC authentication
+- IAM role-based AWS authentication
+- Temporary AWS credentials via AWS STS
+- Infrastructure configuration with Ansible
+- YAML validation
+- Secure secret management
 
 ---
 
@@ -99,37 +126,100 @@ This repository is part of my ongoing DevOps homelab and focuses on building pro
 # Repository Structure
 
 ```text
-terraform-ci-demo/
-│
-├── .github/
-│   └── workflows/
-│       ├── ansible.yml
-│       ├── secrets-test.yml
-│       ├── terraform.yml
-│       ├── terraform-apply.yml
-│       └── yaml-lint.yml
-│
-├── ansible/
-│   └── configure.yml
-│
-└── terraform/
+terraform-ci-demo
+├── ansible
+│   ├── configure.yml
+│   └── inventory.ini
+├── README.md
+└── terraform
+    ├── backend
+    │   ├── dev.hcl
+    │   └── prod.hcl
     ├── backend.tf
-    ├── main.tf
-    ├── outputs.tf
-    ├── variables.tf
+    ├── environments
+    │   ├── dev.tfvars
+    │   └── prod.tfvars
     ├── inventory.tpl
+    ├── main.tf
+    ├── modules
+    │   └── ec2
+    │       ├── main.tf
+    │       ├── outputs.tf
+    │       ├── README.md
+    │       └── variables.tf
+    ├── outputs.tf
+    ├── terraform.tfvars
     ├── userdata.sh
-    │
-    ├── environments/
-    │   ├── dev.tfvars
-    │   └── prod.tfvars
-    │
-    └── modules/
-        └── ec2/
-            ├── main.tf
-            ├── variables.tf
-            └── outputs.tf
+    └── variables.tf
 ```
+
+---
+
+# Authentication
+
+The project originally authenticated GitHub Actions using long-lived IAM user access keys stored as GitHub Secrets.
+
+As part of the security hardening process, the pipeline was migrated to **GitHub OpenID Connect (OIDC)** authentication.
+
+Current authentication flow:
+
+```text
+GitHub Actions
+        │
+        ▼
+OIDC Identity Token
+        │
+        ▼
+AWS IAM Identity Provider
+        │
+        ▼
+IAM Role
+        │
+        ▼
+AWS STS
+        │
+        ▼
+Temporary AWS Credentials
+        │
+        ▼
+Terraform
+```
+
+This approach eliminates the need to store AWS access keys within GitHub and aligns the project with current AWS security best practices.
+
+Benefits include:
+
+* No long-lived AWS credentials
+* Automatic credential rotation
+* Improved auditability
+* Reduced secret management
+* Principle of least privilege
+
+---
+
+# Security Design Decisions
+
+Several security-focused design decisions have been incorporated throughout the project.
+
+## GitHub OIDC Authentication
+
+GitHub Actions authenticates to AWS using OpenID Connect (OIDC) and temporary IAM role credentials instead of long-lived access keys.
+
+## IAM Roles
+
+Separate IAM roles are used for Development and Production deployments, simulating the authentication model commonly used in multi-account AWS environments.
+
+## Remote State
+
+Terraform state is stored remotely in Amazon S3 using the modern S3 lockfile mechanism.
+
+## Secrets
+
+Long-lived AWS credentials are no longer required by the CI/CD pipeline. Repository secrets are limited to non-sensitive configuration where appropriate.
+
+## Deployment Promotion
+
+Infrastructure changes are reviewed through pull requests before deployment. Production deployments require manual approval through GitHub Environments.
 
 ---
 
@@ -375,25 +465,26 @@ This minimizes duplication while ensuring infrastructure changes remain consiste
 
 # Skills Demonstrated
 
-* Infrastructure as Code (Terraform)
-* Terraform Modules
-* Multi-Environment Infrastructure
-* AWS Infrastructure Provisioning
-* Remote Terraform State Management
-* Terraform State Locking
-* GitHub Actions
-* Continuous Integration
-* Continuous Deployment
-* Deployment Approvals
-* GitHub Environments
-* Infrastructure Validation
-* Infrastructure Review Workflows
-* AWS IAM Authentication
-* Secure Secret Management
-* Ansible Configuration Management
-* YAML Validation
-* Git Feature Branch Workflow
-* Technical Documentation
+- AWS Infrastructure Provisioning
+- Infrastructure as Code (Terraform)
+- Modular Terraform Design
+- Remote Terraform State Management
+- Environment-specific Infrastructure
+- GitHub Actions CI/CD
+- Continuous Integration
+- Continuous Deployment
+- Infrastructure Validation
+- Pull Request Based Deployment
+- GitHub Environment Protection
+- OpenID Connect (OIDC)
+- IAM Roles
+- AWS STS Temporary Credentials
+- Secure Cloud Authentication
+- Infrastructure Security
+- Ansible Configuration Management
+- YAML Validation
+- Git Feature Branch Workflow
+- Technical Documentation
 
 ---
 
@@ -401,16 +492,18 @@ This minimizes duplication while ensuring infrastructure changes remain consiste
 
 Planned enhancements include:
 
-* OpenID Connect (OIDC) authentication for GitHub Actions
-* Terraform module registry structure
-* Infrastructure testing
-* Automated security scanning
-* Cost optimization monitoring
-* AWS Load Balancer integration
-* Route 53 DNS management
-* TLS certificate management
-* Kubernetes deployment
-* Monitoring and observability integration
+- Least-privilege IAM policy refinement
+- Infrastructure security scanning (Checkov, Trivy)
+- Terraform linting (TFLint)
+- Infrastructure testing
+- Cost optimization and AWS Budgets
+- Application Load Balancers
+- Route 53 and DNS
+- TLS certificate management
+- Multi-account AWS deployment
+- Kubernetes deployment
+- Monitoring and observability (Prometheus/Grafana)
+- Centralized logging
 
 ---
 
@@ -427,6 +520,26 @@ Building this project reinforced several important DevOps concepts:
 * Deployment approvals provide an additional layer of operational safety for automated infrastructure changes.
 * Automation should improve reliability while maintaining appropriate operational safeguards.
 * Well-documented projects are easier to maintain, troubleshoot, and demonstrate to prospective employers.
+
+---
+
+# Project Evolution
+
+This repository has been intentionally developed in iterative stages to reflect how infrastructure evolves in real-world engineering environments.
+
+Major milestones include:
+
+1. Basic Terraform infrastructure deployment
+2. Remote Terraform state with Amazon S3
+3. CI/CD integration with GitHub Actions
+4. Automated validation and planning workflows
+5. Environment-specific configuration
+6. Modular Terraform architecture
+7. Manual deployment approvals
+8. Migration from IAM user credentials to GitHub OIDC authentication
+9. Environment-specific IAM roles using temporary AWS credentials
+
+Future phases will focus on infrastructure security, policy enforcement, advanced AWS networking, Kubernetes, observability, and production-grade operational practices.
 
 ---
 
