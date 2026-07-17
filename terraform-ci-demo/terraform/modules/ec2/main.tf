@@ -22,6 +22,8 @@ resource "aws_instance" "instance" {
     ManagedBy = "Terraform"
 
     GitHubOIDCDeployed = "True"
+
+    Test = "True"
   }
 
 }
