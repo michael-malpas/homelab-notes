@@ -209,6 +209,12 @@ GitHub Actions authenticates to AWS using OpenID Connect (OIDC) and temporary IA
 
 Separate IAM roles are used for Development and Production deployments, simulating the authentication model commonly used in multi-account AWS environments.
 
+Have Recently updated to customer-managed policies
+
+Least privilege is applied using a methodic approach of adding minimal permissions and adding additional to accomplish needed tasks as required.
+
+The policy will evolve as additional AWS services are introduced.
+
 ## Remote State
 
 Terraform state is stored remotely in Amazon S3 using the modern S3 lockfile mechanism.
