@@ -33,7 +33,7 @@ jobs:
         uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend=false
 
       - name: Terraform Formatting
         run: terraform fmt -check -recursive
