@@ -2,7 +2,12 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 6.0"
+      version = ">= 6.0"
+    }
+
+    local = {
+      source  = "hashicorp/local"
+      version = ">= 2.5"
     }
   }
 }
@@ -24,9 +29,16 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_security_group" "web" {
 
-  name = "${var.environment}-web-sg"
+  #checkov:skip=CKV_AWS_382:EC2 instances require outbound internet access for package updates
+  #checkov:skip=CKV_AWS_260:Public HTTP access required for web server demo
+
+
+  name        = "${var.environment}-web-sg"
+  description = "ec2 web server rules"
 
   ingress {
+    description = "SSH access from admin IP"
+
     from_port = 22
     to_port   = 22
     protocol  = "tcp"
@@ -35,6 +47,8 @@ resource "aws_security_group" "web" {
   }
 
   ingress {
+    description = "HTTP web traffic"
+
     from_port = 80
     to_port   = 80
     protocol  = "tcp"
@@ -43,6 +57,8 @@ resource "aws_security_group" "web" {
   }
 
   egress {
+    description = "Allow outbound internet access"
+
     from_port = 0
     to_port   = 0
     protocol  = "-1"
