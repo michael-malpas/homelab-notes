@@ -1,0 +1,129 @@
+name: Terraform-PR
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  pull_request:
+
+    paths:
+      - 'terraform-ci-demo/**'
+
+    branches:
+      - main
+jobs:
+
+  tf-validate:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform-ci-demo/terraform
+
+    environment: development
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init
+        run: terraform init -backend-config="backend/dev.hcl"
+
+      - name: Terraform Formatting
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        run: terraform validate
+
+  tflint:
+
+    needs: tf-validate
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform-ci-demo/terraform
+
+    environment: development
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init
+        run: terraform init -backend-config="backend/dev.hcl"
+
+      - name: Install TFLint
+        run: curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+
+      - name: Initialize TFLint Plugin
+        run: tflint --init
+
+      - name: Run TFLint
+        run: tflint
+
+  checkov:
+
+    needs: tflint
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform-ci-demo/terraform
+
+    environment: development
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Install Pipx
+        run: sudo apt install pipx -y
+
+      - name: Install Checkov
+        run: pipx install checkov -y
+
+      - name: Checkov Scan
+        run: checkov -d .
+
+  tf-plan:
+
+    needs: checkov
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform-ci-demo/terraform
+
+    environment: development
+
+    steps:
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Plan
+        run: terraform plan -no-color -var-file="environments/dev.tfvars"
+        env:
+          TF_VAR_my_ip: ${{ secrets.MY_IP }}
