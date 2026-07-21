@@ -92,7 +92,7 @@ jobs:
         run: sudo apt install pipx -y
 
       - name: Install Checkov
-        run: pipx install checkov -y
+        run: pipx install checkov
 
       - name: Checkov Scan
         run: checkov -d .
