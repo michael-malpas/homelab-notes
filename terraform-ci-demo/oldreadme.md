@@ -4,7 +4,7 @@
 
 This project demonstrates a production-inspired Infrastructure as Code (IaC) workflow using **Terraform**, **GitHub Actions**, **AWS**, and **Ansible**.
 
-The project provisions AWS infrastructure with Terraform while automating validation, security scanning, planning, approval, and deployment through GitHub Actions. Infrastructure changes are reviewed through pull requests before being promoted through Development and Production deployment workflows.
+The project provisions AWS infrastructure with Terraform while automating validation, planning, approval, and deployment through GitHub Actions. Infrastructure changes are reviewed through pull requests before being promoted through Development and Production deployment workflows.
 
 The repository has evolved beyond basic infrastructure provisioning and now incorporates several modern DevOps practices, including:
 
@@ -13,14 +13,11 @@ The repository has evolved beyond basic infrastructure provisioning and now inco
 * Remote Terraform state stored in Amazon S3
 * Environment-specific deployments
 * GitHub Actions CI/CD pipelines
-* Automated infrastructure quality gates
-* Terraform formatting and validation
-* Terraform linting with TFLint
-* Infrastructure security scanning with Checkov
 * Manual approval gates for Production
 * OpenID Connect (OIDC) authentication with AWS
 * IAM role-based deployments using temporary credentials
-* Infrastructure configuration management using Ansible
+* Infrastructure validation and YAML linting
+* Ansible configuration management
 
 The project is part of my ongoing DevOps homelab and is intended to demonstrate enterprise-inspired infrastructure automation, cloud security, CI/CD workflows, and operational best practices.
 
@@ -35,23 +32,12 @@ The project is part of my ongoing DevOps homelab and is intended to demonstrate 
                       Pull Request / Merge
                                 │
                                 ▼
-                    GitHub Actions CI Pipeline
+                     GitHub Actions Workflows
                                 │
-                                ▼
-                         terraform-pr.yml
-                                │
-        ┌───────────────────────┼───────────────────────┐
-        │                       │                       │
-        ▼                       ▼                       ▼
- Terraform fmt          Terraform validate           TFLint
-        │                       │                       │
-        └───────────────────────┼───────────────────────┘
-                                │
-                                ▼
-                            Checkov
-                                │
-                                ▼
-                        Terraform plan
+        ┌───────────────────────┼────────────────────────┐
+        │                       │                        │
+        ▼                       ▼                        ▼
+ Terraform fmt          Terraform validate      Terraform plan
                                 │
                                 ▼
                         Pull Request Review
@@ -76,9 +62,7 @@ The project is part of my ongoing DevOps homelab and is intended to demonstrate 
                                 ▼
                    Ansible Configuration
 ```
-
 Note:
-
 ```text
 Production deployments use a separate IAM role with GitHub Environment approval to simulate a multi-account enterprise deployment strategy.
 ```
@@ -95,9 +79,8 @@ Production deployments use a separate IAM role with GitHub Environment approval 
 - GitHub Actions CI/CD pipelines
 - Automated Terraform formatting
 - Automated Terraform validation
-- Terraform linting with TFLint
-- Infrastructure security scanning with Checkov
-- Automated Terraform planning after quality gates pass
+- Automated Terraform planning
+- Automated Terraform deployment
 - Pull request review workflow
 - Manual Production approval gates
 - GitHub OIDC authentication
@@ -129,12 +112,6 @@ Production deployments use a separate IAM role with GitHub Environment approval 
 
 * GitHub Actions
 
-## Security and Quality Tools
-
-* TFLint
-* Checkov
-* Yamllint
-
 ## Version Control
 
 * Git
@@ -151,25 +128,25 @@ Production deployments use a separate IAM role with GitHub Environment approval 
 ```text
 terraform-ci-demo
 ├── ansible
-│   ├── configure.yml
-│   └── inventory.ini
+│   ├── configure.yml
+│   └── inventory.ini
 ├── README.md
 └── terraform
     ├── backend
-    │   ├── dev.hcl
-    │   └── prod.hcl
+    │   ├── dev.hcl
+    │   └── prod.hcl
     ├── backend.tf
     ├── environments
-    │   ├── dev.tfvars
-    │   └── prod.tfvars
+    │   ├── dev.tfvars
+    │   └── prod.tfvars
     ├── inventory.tpl
     ├── main.tf
     ├── modules
-    │   └── ec2
-    │       ├── main.tf
-    │       ├── outputs.tf
-    │       ├── README.md
-    │       └── variables.tf
+    │   └── ec2
+    │       ├── main.tf
+    │       ├── outputs.tf
+    │       ├── README.md
+    │       └── variables.tf
     ├── outputs.tf
     ├── terraform.tfvars
     ├── userdata.sh
@@ -232,11 +209,11 @@ GitHub Actions authenticates to AWS using OpenID Connect (OIDC) and temporary IA
 
 Separate IAM roles are used for Development and Production deployments, simulating the authentication model commonly used in multi-account AWS environments.
 
-Customer-managed IAM policies are used instead of broad AWS managed policies.
+Have Recently updated to customer-managed policies
 
-Least privilege is applied using a methodical approach of adding minimal permissions and expanding permissions only when required.
+Least privilege is applied using a methodic approach of adding minimal permissions and adding additional to accomplish needed tasks as required.
 
-The policy will continue evolving as additional AWS services are introduced.
+The policy will evolve as additional AWS services are introduced.
 
 ## Remote State
 
@@ -277,23 +254,17 @@ This modular design reduces duplication, improves readability, and makes the inf
 
 # GitHub Actions Workflows
 
-## terraform-pr.yml
+## terraform.yml
 
 Runs during pull requests and validates infrastructure changes before deployment.
-
-This workflow acts as the primary infrastructure quality gate before changes are approved and merged.
 
 Stages include:
 
 * Terraform formatting (`terraform fmt`)
 * Terraform validation (`terraform validate`)
-* Terraform linting (`TFLint`)
-* Infrastructure security scanning (`Checkov`)
 * Terraform planning (`terraform plan`)
 
-Terraform planning only occurs after all automated quality gates successfully pass.
-
-This workflow allows infrastructure changes to be reviewed before deployment and prevents invalid or insecure configurations from progressing through the pipeline.
+This workflow allows infrastructure changes to be reviewed before deployment.
 
 ---
 
@@ -303,7 +274,7 @@ Runs after code has been merged into the `main` branch and deployment has been a
 
 Stages include:
 
-* Configure AWS credentials through GitHub OIDC
+* Configure AWS credentials
 * Initialize Terraform
 * Terraform Apply
 
@@ -314,11 +285,6 @@ The workflow uses GitHub Environment protection rules to require manual approval
 ## ansible.yml
 
 Validates Ansible playbooks to catch syntax errors before configuration changes are deployed.
-
-Stages include:
-
-* Ansible syntax validation
-* Playbook validation
 
 ---
 
@@ -331,149 +297,6 @@ Runs Yamllint against repository YAML files to maintain consistent formatting an
 ## secrets-test.yml
 
 Verifies that GitHub Actions can successfully authenticate with AWS using repository secrets.
-
-This workflow was used during the migration from IAM user access keys to GitHub OIDC authentication.
-
----
-
-# Quality Assurance
-
-Before infrastructure changes can be deployed, Terraform code must pass automated quality gates to ensure consistency, validity, security, and maintainability.
-
-The CI/CD pipeline performs multiple validation stages before a Terraform deployment plan is generated.
-
-Infrastructure changes must successfully pass all automated quality checks before a deployment plan is created.
-
----
-
-## Terraform Format (`terraform fmt`)
-
-Terraform formatting ensures that all Terraform configuration files follow standard HashiCorp formatting conventions.
-
-The pipeline runs:
-
-```bash
-terraform fmt -check -recursive
-```
-
-This verifies that Terraform files are consistently formatted before changes are reviewed.
-
-Benefits:
-
-* Maintains consistent code style
-* Improves readability
-* Reduces unnecessary formatting changes in pull requests
-* Ensures Terraform follows community standards
-
----
-
-## Terraform Validate (`terraform validate`)
-
-Terraform validation checks whether the Terraform configuration is syntactically correct and internally consistent.
-
-The pipeline runs:
-
-```bash
-terraform init
-terraform validate
-```
-
-Validation verifies:
-
-* Terraform configuration syntax
-* Provider configuration
-* Resource definitions
-* Module references
-* Variable usage
-
-This prevents invalid Terraform configurations from progressing further in the deployment pipeline.
-
----
-
-## TFLint
-
-TFLint performs static analysis on Terraform code to identify potential issues beyond basic syntax validation.
-
-TFLint checks for:
-
-* Terraform best practices
-* Provider-specific issues
-* Deprecated configurations
-* AWS-specific configuration recommendations
-* Potential configuration mistakes
-
-Example:
-
-```bash
-tflint
-```
-
-TFLint helps identify problems early before infrastructure changes are deployed.
-
----
-
-## Checkov
-
-Checkov performs Infrastructure as Code security scanning against Terraform configurations.
-
-The pipeline runs:
-
-```bash
-checkov -d .
-```
-
-Checkov evaluates infrastructure against security policies and cloud security best practices.
-
-Examples of checks include:
-
-* Publicly accessible resources
-* Missing encryption settings
-* Overly permissive security groups
-* Insecure IAM configurations
-* AWS security best practices
-
-Security exceptions are documented explicitly when required for intentional lab or demonstration configurations.
-
----
-
-## Deployment Quality Gate
-
-All automated quality checks must successfully complete before a Terraform deployment plan is generated.
-
-The workflow follows this sequence:
-
-```text
-Terraform Code Change
-          │
-          ▼
-terraform fmt
-          │
-          ▼
-terraform validate
-          │
-          ▼
-TFLint
-          │
-          ▼
-Checkov
-          │
-          ▼
-terraform plan
-          │
-          ▼
-Pull Request Review
-          │
-          ▼
-Merge into main
-          │
-          ▼
-Deployment Approval
-          │
-          ▼
-terraform apply
-```
-
-This quality gate approach ensures that infrastructure changes are reviewed, validated, and security-checked before they are allowed to modify cloud resources.
 
 ---
 
@@ -489,12 +312,10 @@ Feature Branch
 Pull Request
      │
      ▼
-terraform-pr.yml
+GitHub Actions
 
  • Terraform fmt
  • Terraform validate
- • TFLint
- • Checkov
  • Terraform plan
 
      │
@@ -505,11 +326,11 @@ Code Review
 Merge into main
      │
      ▼
-terraform-apply.yml
+GitHub Environment
 
- • Configure AWS OIDC authentication
- • Terraform init
- • Manual approval
+     │
+     ▼
+Manual Approval
 
      │
      ▼
@@ -531,7 +352,7 @@ AWS Infrastructure Updated
 * Git
 * GitHub repository
 * GitHub Actions enabled
-* AWS IAM permissions for infrastructure deployment
+* AWS IAM user with appropriate permissions
 
 ---
 
@@ -539,7 +360,10 @@ AWS Infrastructure Updated
 
 Sensitive information is **never stored within the repository**.
 
-GitHub Actions authentication uses GitHub OIDC with AWS IAM roles rather than long-lived access keys.
+GitHub Secrets are used for credentials such as:
+
+* `AWS_ACCESS_KEY_ID`
+* `AWS_SECRET_ACCESS_KEY`
 
 Environment-specific configuration is stored in Terraform variable files such as:
 
@@ -556,26 +380,11 @@ This allows the same Terraform codebase to deploy multiple environments while ke
 
 Infrastructure validation and deployment are intentionally separated.
 
-Pull requests execute automated quality checks and generate Terraform execution plans, allowing infrastructure changes to be reviewed before deployment.
+Pull requests generate Terraform execution plans, allowing infrastructure changes to be reviewed before deployment.
 
 Only after approval and merging into the `main` branch does the deployment workflow execute.
 
 This mirrors common enterprise Infrastructure as Code workflows and reduces deployment risk.
-
----
-
-## Infrastructure Quality Gates
-
-Infrastructure changes must pass automated validation and security checks before a deployment plan is generated.
-
-The CI/CD pipeline validates:
-
-* Terraform formatting
-* Terraform configuration validity
-* Terraform best practices
-* Infrastructure security policies
-
-This ensures infrastructure changes meet baseline quality and security standards before they can be reviewed or deployed.
 
 ---
 
@@ -624,44 +433,39 @@ This minimizes duplication while ensuring infrastructure changes remain consiste
 ## GitHub Actions Pipeline
 
 <p><img width="371" height="324" alt="image" src="https://github.com/user-attachments/assets/55102379-814c-4d69-8c52-b9de76fee36b" /></p>
-
 <p><img width="321" height="509" alt="image" src="https://github.com/user-attachments/assets/a4431f7e-1b60-4e61-9c3a-dceeea667183" /></p>
-
 <p><img width="314" height="430" alt="image" src="https://github.com/user-attachments/assets/568bb9fb-3cdc-4942-b282-487c57eff721" /></p>
-
-<p><img width="318" height="370" alt="image" src="https://github.com/user-attachments/assets/62240b42-5933-401c-8f75-eb6eb416b32c" /></p>
-
-<p><img width="322" height="320" alt="image" src="https://github.com/user-attachments/assets/8650c134-60dd-4fee-acbf-2a409103285c" /></p>
+<p><img width="318" height="370" alt="image" src="https://github.com/user-attachments/assets/62240b42-5933-401c-8f75-eb6eb416b32c" />
+</p>
+<p><img width="322" height="320" alt="image" src="https://github.com/user-attachments/assets/8650c134-60dd-4fee-acbf-2a409103285c" />
+</p>
 
 ---
 
 ## Terraform Plan
 
 <img width="602" height="791" alt="image" src="https://github.com/user-attachments/assets/d8c049c0-821a-41cd-bbfa-cc63f23f484a" />
-
 <img width="602" height="763" alt="image" src="https://github.com/user-attachments/assets/ce3d7b40-769c-4449-b115-0e2946f1374c" />
-
 <img width="601" height="778" alt="image" src="https://github.com/user-attachments/assets/8148386c-95cd-4096-a262-efbd47a78eb4" />
-
 <img width="604" height="779" alt="image" src="https://github.com/user-attachments/assets/de4c43a2-07c6-4228-8577-66c217c06c6e" />
-
 <img width="602" height="762" alt="image" src="https://github.com/user-attachments/assets/215d53b7-503e-4906-aea5-b8c26c02b096" />
-
 <img width="600" height="130" alt="image" src="https://github.com/user-attachments/assets/c5997006-13f8-474d-88c5-8669f39b957d" />
+
 
 ---
 
 ## GitHub Environment Approval
 
 <img width="1551" height="682" alt="image" src="https://github.com/user-attachments/assets/efe8c319-4345-4503-9c30-8a640f48d9db" />
-
 <img width="630" height="380" alt="image" src="https://github.com/user-attachments/assets/d93cb42d-d3e4-4c88-9966-7b5ee50dcba9" />
+
 
 ---
 
 ## AWS EC2 Instance
 
 <img width="1027" height="165" alt="image" src="https://github.com/user-attachments/assets/8a9ddd8d-3b91-4531-8cb6-31981d333899" />
+
 
 ---
 
@@ -675,10 +479,7 @@ This minimizes duplication while ensuring infrastructure changes remain consiste
 - GitHub Actions CI/CD
 - Continuous Integration
 - Continuous Deployment
-- Infrastructure Quality Gates
-- Terraform Formatting and Validation
-- Terraform Linting with TFLint
-- Infrastructure Security Scanning with Checkov
+- Infrastructure Validation
 - Pull Request Based Deployment
 - GitHub Environment Protection
 - OpenID Connect (OIDC)
@@ -698,6 +499,8 @@ This minimizes duplication while ensuring infrastructure changes remain consiste
 Planned enhancements include:
 
 - Least-privilege IAM policy refinement
+- Infrastructure security scanning (Checkov, Trivy)
+- Terraform linting (TFLint)
 - Infrastructure testing
 - Cost optimization and AWS Budgets
 - Application Load Balancers
@@ -707,7 +510,6 @@ Planned enhancements include:
 - Kubernetes deployment
 - Monitoring and observability (Prometheus/Grafana)
 - Centralized logging
-- Advanced Terraform testing frameworks
 
 ---
 
@@ -716,15 +518,13 @@ Planned enhancements include:
 Building this project reinforced several important DevOps concepts:
 
 * Infrastructure should be treated as version-controlled code.
-* Validation, planning, and deployment should be separate stages within a CI/CD pipeline.
+* Validation and deployment should be separate stages within a CI/CD pipeline.
 * Secrets should never be committed to source control.
-* Short-lived credentials are preferred over long-lived access keys.
 * Infrastructure changes should be reviewed before deployment.
-* Automated quality gates improve reliability and reduce deployment risk.
-* Security scanning should be integrated into the development workflow rather than performed after deployment.
 * Modular infrastructure is easier to maintain than large monolithic Terraform configurations.
 * Separating configuration from infrastructure code enables consistent multi-environment deployments.
 * Deployment approvals provide an additional layer of operational safety for automated infrastructure changes.
+* Automation should improve reliability while maintaining appropriate operational safeguards.
 * Well-documented projects are easier to maintain, troubleshoot, and demonstrate to prospective employers.
 
 ---
@@ -738,17 +538,14 @@ Major milestones include:
 1. Basic Terraform infrastructure deployment
 2. Remote Terraform state with Amazon S3
 3. CI/CD integration with GitHub Actions
-4. Automated Terraform validation and planning workflows
+4. Automated validation and planning workflows
 5. Environment-specific configuration
 6. Modular Terraform architecture
 7. Manual deployment approvals
 8. Migration from IAM user credentials to GitHub OIDC authentication
 9. Environment-specific IAM roles using temporary AWS credentials
-10. Automated infrastructure quality gates
-11. Terraform linting with TFLint
-12. Infrastructure security scanning with Checkov
 
-Future phases will focus on infrastructure testing, advanced AWS networking, Kubernetes, observability, and production-grade operational practices.
+Future phases will focus on infrastructure security, policy enforcement, advanced AWS networking, Kubernetes, observability, and production-grade operational practices.
 
 ---
 
