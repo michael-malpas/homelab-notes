@@ -67,7 +67,7 @@ resource "aws_security_group" "web" {
   }
 
   tags = merge(
-    locals.common_tags,
+    local.common_tags,
     {
       Name = "${var.environment}-web-sg"
     }
@@ -76,6 +76,8 @@ resource "aws_security_group" "web" {
 
 module "web" {
   source = "./modules/ec2"
+
+  common_tags = local.common_tags
 
   # Pass required variables here
   instance_count    = var.instance_count

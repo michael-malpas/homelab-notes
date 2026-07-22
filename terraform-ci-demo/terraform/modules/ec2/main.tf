@@ -30,7 +30,7 @@ resource "aws_instance" "instance" {
   ]
 
   tags = merge(
-    locals.common_tags,
+    var.common_tags,
     {
       Name = "${var.environment}-${var.server_name}${count.index + 1}"
     }
