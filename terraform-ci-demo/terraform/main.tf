@@ -67,7 +67,7 @@ resource "aws_security_group" "web" {
   }
 
   tags = merge(
-    local.common_tags,
+    locals.common_tags,
     {
       Name = "${var.environment}-web-sg"
     }
