@@ -1,5 +1,43 @@
 # Terraform CI/CD Demo
 
+## Table of Contents
+
+### Project
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Repository Structure](#repository-structure)
+- [Authentication](#authentication)
+- [Security Design Decisions](#security-design-decisions)
+
+### Infrastructure
+- [Terraform Resources](#terraform-resources)
+- [Terraform Modules](#terraform-modules)
+- [GitHub Actions Workflows](#github-actions-workflows)
+- [Quality Assurance](#quality-assurance)
+- [How the CI/CD Pipeline Works](#how-the-cicd-pipeline-works)
+
+### Deployment
+- [Getting Started](#getting-started)
+- [Repository Configuration](#repository-configuration)
+
+### Design
+- [Design Decisions](#design-decisions)
+
+### Screenshots
+- [GitHub Actions Pipeline](#github-actions-pipeline)
+- [Terraform Plan](#terraform-plan)
+- [GitHub Environment Approval](#github-environment-approval)
+- [AWS EC2 Instance](#aws-ec2-instance)
+
+### Portfolio
+- [Skills Demonstrated](#skills-demonstrated)
+- [Future Improvements](#future-improvements)
+- [Lessons Learned](#lessons-learned)
+- [Project Evolution](#project-evolution)
+- [License](#license)
+
 ## Overview
 
 This project demonstrates a production-inspired Infrastructure as Code (IaC) workflow using **Terraform**, **GitHub Actions**, **AWS**, and **Ansible**.
@@ -21,6 +59,7 @@ The repository has evolved beyond basic infrastructure provisioning and now inco
 * OpenID Connect (OIDC) authentication with AWS
 * IAM role-based deployments using temporary credentials
 * Infrastructure configuration management using Ansible
+* AWS cost governance tagging
 
 The project is part of my ongoing DevOps homelab and is intended to demonstrate enterprise-inspired infrastructure automation, cloud security, CI/CD workflows, and operational best practices.
 
@@ -106,6 +145,10 @@ Production deployments use a separate IAM role with GitHub Environment approval 
 - Infrastructure configuration with Ansible
 - YAML validation
 - Secure secret management
+- Standardized resource tagging using Terraform locals
+- AWS Cost Explorer integration through cost allocation tags
+- AWS Budgets for proactive cost monitoring
+- Centralized common tags applied across infrastructure
 
 ---
 
@@ -170,6 +213,7 @@ terraform-ci-demo
     │       ├── outputs.tf
     │       ├── README.md
     │       └── variables.tf
+    ├── locals.tf
     ├── outputs.tf
     ├── terraform.tfvars
     ├── userdata.sh
@@ -241,6 +285,36 @@ The policy will continue evolving as additional AWS services are introduced.
 ## Remote State
 
 Terraform state is stored remotely in Amazon S3 using the modern S3 lockfile mechanism.
+
+## Cloud Cost Governance
+
+Cloud resources should be easy to identify, manage, and attribute to the correct environment or project. To support this, all infrastructure created by Terraform follows a standardized tagging strategy.
+
+A centralized set of common tags is defined using Terraform locals and automatically applied across resources using the merge() function. This reduces duplication while ensuring consistent metadata is attached to every resource.
+
+```text
+| Tag          | Purpose                                                  |
+| ------------ | -------------------------------------------------------- |
+| Name         | Human-readable resource name                             |
+| Environment  | Development or Production environment                    |
+| Project      | Identifies the Terraform CI/CD Demo project              |
+| Owner        | Resource owner                                           |
+| ManagedBy    | Indicates Terraform manages the resource                 |
+| Repository   | Source GitHub repository                                 |
+| CostCenter   | Used for cost allocation                                 |
+| AutoDeployed | Indicates infrastructure was deployed through automation |
+```
+These tags improve:
+
+- Resource ownership
+- Cost reporting
+- Inventory management
+- Automation
+- Operational consistency
+
+AWS Cost Allocation Tags are enabled so costs can be grouped by project and environment within AWS Cost Explorer.
+
+An AWS Budget is also configured to notify when monthly spending approaches the defined threshold, encouraging proactive cloud cost management.
 
 ## Secrets
 
@@ -619,6 +693,16 @@ This minimizes duplication while ensuring infrastructure changes remain consiste
 
 ---
 
+## Infrastructure Governance
+
+Infrastructure should not only be automated—it should also be easy to operate and maintain.
+
+To support this, the project implements standardized tagging across all Terraform-managed resources. Common tags are defined once using Terraform locals and merged into individual resources to ensure consistency without duplicating configuration.
+
+This approach simplifies resource discovery, enables cost allocation, improves operational visibility, and mirrors governance practices commonly used within enterprise cloud environments.
+
+---
+
 # Screenshots
 
 ## GitHub Actions Pipeline
@@ -690,6 +774,13 @@ This minimizes duplication while ensuring infrastructure changes remain consiste
 - YAML Validation
 - Git Feature Branch Workflow
 - Technical Documentation
+- AWS Resource Tagging
+- Cloud Cost Governance
+- AWS Budgets
+- Cost Allocation Tags
+- Terraform Locals
+- Terraform merge() Function
+- Infrastructure Governance
 
 ---
 
@@ -697,9 +788,9 @@ This minimizes duplication while ensuring infrastructure changes remain consiste
 
 Planned enhancements include:
 
-- Least-privilege IAM policy refinement
-- Infrastructure testing
-- Cost optimization and AWS Budgets
+- Automated cost anomaly detection
+- AWS Cost and Usage Reports (CUR)
+- Policy-as-Code using Open Policy Agent (OPA)
 - Application Load Balancers
 - Route 53 and DNS
 - TLS certificate management
