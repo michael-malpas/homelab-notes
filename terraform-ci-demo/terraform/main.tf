@@ -65,10 +65,19 @@ resource "aws_security_group" "web" {
 
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.environment}-web-sg"
+    }
+  )
 }
 
 module "web" {
   source = "./modules/ec2"
+
+  common_tags = local.common_tags
 
   # Pass required variables here
   instance_count    = var.instance_count
