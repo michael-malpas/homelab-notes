@@ -65,6 +65,13 @@ resource "aws_security_group" "web" {
 
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.environment}-web-sg"
+    }
+  )
 }
 
 module "web" {

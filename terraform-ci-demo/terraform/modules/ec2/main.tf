@@ -29,16 +29,11 @@ resource "aws_instance" "instance" {
     var.security_group_id
   ]
 
-  tags = {
-    Name = "${var.environment}-${var.server_name}${count.index + 1}"
-
-    Environment = var.environment
-
-    ManagedBy = "Terraform"
-
-    GitHubOIDCDeployed = "True"
-
-    Test = "True"
-  }
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.environment}-${var.server_name}${count.index + 1}"
+    }
+  )
 
 }
