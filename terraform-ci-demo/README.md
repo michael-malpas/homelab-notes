@@ -10,6 +10,7 @@
 - [Repository Structure](#repository-structure)
 - [Authentication](#authentication)
 - [Security Design Decisions](#security-design-decisions)
+- [Security Highlights](#security-highlights)
 
 ### Infrastructure
 - [Terraform Resources](#terraform-resources)
@@ -149,6 +150,9 @@ Production deployments use a separate IAM role with GitHub Environment approval 
 - AWS Cost Explorer integration through cost allocation tags
 - AWS Budgets for proactive cost monitoring
 - Centralized common tags applied across infrastructure
+- Separate Development and Production IAM roles
+- Customer-managed IAM policies
+- IAM policy validation using IAM Access Analyzer
 
 ---
 
@@ -240,7 +244,7 @@ OIDC Identity Token
 AWS IAM Identity Provider
         │
         ▼
-IAM Role
+Development / Production IAM Role
         │
         ▼
 AWS STS
@@ -282,6 +286,14 @@ Least privilege is applied using a methodical approach of adding minimal permiss
 
 The policy will continue evolving as additional AWS services are introduced.
 
+### IAM Access Analyzer
+
+IAM Access Analyzer is used to validate customer-managed IAM policies and identify opportunities to further reduce permissions.
+
+Rather than granting broad administrative access, IAM policies are iteratively refined based on deployment requirements and Access Analyzer recommendations. This approach helps ensure the GitHub Actions deployment roles maintain only the permissions necessary to provision the infrastructure.
+
+This mirrors how IAM policies are commonly developed and maintained within enterprise AWS environments.
+
 ## Remote State
 
 Terraform state is stored remotely in Amazon S3 using the modern S3 lockfile mechanism.
@@ -292,18 +304,17 @@ Cloud resources should be easy to identify, manage, and attribute to the correct
 
 A centralized set of common tags is defined using Terraform locals and automatically applied across resources using the merge() function. This reduces duplication while ensuring consistent metadata is attached to every resource.
 
-```text
-| Tag          | Purpose                                                  |
-| ------------ | -------------------------------------------------------- |
-| Name         | Human-readable resource name                             |
-| Environment  | Development or Production environment                    |
-| Project      | Identifies the Terraform CI/CD Demo project              |
-| Owner        | Resource owner                                           |
-| ManagedBy    | Indicates Terraform manages the resource                 |
-| Repository   | Source GitHub repository                                 |
-| CostCenter   | Used for cost allocation                                 |
+| Tag | Purpose |
+|------|---------|
+| Name | Human-readable resource name |
+| Environment | Development or Production environment |
+| Project | Identifies the Terraform CI/CD Demo project |
+| Owner | Resource owner |
+| ManagedBy | Indicates Terraform manages the resource |
+| Repository | Source GitHub repository |
+| CostCenter | Used for cost allocation |
 | AutoDeployed | Indicates infrastructure was deployed through automation |
-```
+
 These tags improve:
 
 - Resource ownership
@@ -323,6 +334,22 @@ Long-lived AWS credentials are no longer required by the CI/CD pipeline. Reposit
 ## Deployment Promotion
 
 Infrastructure changes are reviewed through pull requests before deployment. Production deployments require manual approval through GitHub Environments.
+
+---
+
+# Security Highlights
+
+The project incorporates several modern AWS security practices:
+
+- GitHub OpenID Connect (OIDC) authentication
+- Temporary AWS STS credentials
+- Separate Development and Production IAM roles
+- Customer-managed IAM policies
+- Principle of least privilege
+- IAM Access Analyzer policy validation
+- Protected Production deployments through GitHub Environments
+- Remote Terraform state stored securely in Amazon S3
+- No long-lived AWS credentials stored in the repository
 
 ---
 
@@ -591,7 +618,17 @@ Terraform Apply
 
      │
      ▼
-AWS Infrastructure Updated
+AWS
+
+├── EC2
+├── Security Groups
+├── S3 Remote State
+└── Cost Governance Tags
+
+        │
+        ▼
+Ansible Configuration
+
 ```
 
 ---
@@ -781,6 +818,10 @@ This approach simplifies resource discovery, enables cost allocation, improves o
 - Terraform Locals
 - Terraform merge() Function
 - Infrastructure Governance
+- AWS IAM Policy Design
+- IAM Access Analyzer
+- Principle of Least Privilege
+- GitHub OIDC Federation
 
 ---
 
@@ -794,7 +835,7 @@ Planned enhancements include:
 - Application Load Balancers
 - Route 53 and DNS
 - TLS certificate management
-- Multi-account AWS deployment
+- AWS Organizations and true multi-account architecture (potentially, understand principle but want to avoid costs)
 - Kubernetes deployment
 - Monitoring and observability (Prometheus/Grafana)
 - Centralized logging
@@ -838,6 +879,8 @@ Major milestones include:
 10. Automated infrastructure quality gates
 11. Terraform linting with TFLint
 12. Infrastructure security scanning with Checkov
+13. Cloud governance and standardized resource tagging
+14. Least-privilege IAM with customer-managed policies and IAM Access Analyzer
 
 Future phases will focus on infrastructure testing, advanced AWS networking, Kubernetes, observability, and production-grade operational practices.
 
