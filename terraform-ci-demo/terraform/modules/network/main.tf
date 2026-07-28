@@ -1,5 +1,5 @@
 resource "aws_vpc" "vpc" {
-#checkov:skip=CKV2_AWS_11:VPC Flow Logs will be implemented in a later security monitoring lesson
+  #checkov:skip=CKV2_AWS_11:VPC Flow Logs will be implemented in a later security monitoring lesson
 
   #  description = "environment vpc resource"
 
