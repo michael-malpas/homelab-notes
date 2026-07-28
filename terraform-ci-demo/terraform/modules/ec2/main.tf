@@ -29,6 +29,8 @@ resource "aws_instance" "instance" {
     var.security_group_id
   ]
 
+  subnet_id = var.public_subnet_id
+
   tags = merge(
     var.common_tags,
     {

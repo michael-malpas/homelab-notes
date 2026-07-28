@@ -74,6 +74,17 @@ resource "aws_security_group" "web" {
   )
 }
 
+module "network" {
+  source = "./modules/network"
+
+  common_tags         = local.common_tags
+  environment         = var.environment
+  vpc_cidr            = var.vpc_cidr
+  public_subnet_cidr  = var.public_subnet_cidr
+  private_subnet_cidr = var.private_subnet_cidr
+  availability_zone   = var.availability_zone
+}
+
 module "web" {
   source = "./modules/ec2"
 
@@ -88,6 +99,7 @@ module "web" {
   security_group_id = aws_security_group.web.id
   server_name       = var.server_name
   environment       = var.environment
+  public_subnet_id  = module.network.public_subnet_id
 }
 
 resource "local_file" "ansible_inventory" {
