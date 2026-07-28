@@ -99,6 +99,7 @@ module "web" {
   security_group_id = aws_security_group.web.id
   server_name       = var.server_name
   environment       = var.environment
+  public_subnet_id  = module.network.public_subnet_id
 }
 
 resource "local_file" "ansible_inventory" {
