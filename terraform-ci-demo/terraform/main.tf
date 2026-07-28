@@ -36,6 +36,8 @@ resource "aws_security_group" "web" {
   name        = "${var.environment}-web-sg"
   description = "ec2 web server rules"
 
+  vpc_id = module.network.vpc_id
+
   ingress {
     description = "SSH access from admin IP"
 
