@@ -1,6 +1,10 @@
-aws_region     = "us-east-1"
-instance_type  = "t3.small"
-key_name       = "devops-lab-key"
-server_name    = "web"
-instance_count = 2
-environment    = "prod"
+aws_region          = "us-east-1"
+instance_type       = "t3.small"
+key_name            = "devops-lab-key"
+server_name         = "web"
+instance_count      = 2
+environment         = "prod"
+vpc_cidr            = "10.1.0.0/16"
+public_subnet_cidr  = "10.1.1.0/24"
+private_subnet_cidr = "10.1.2.0/24"
+availability_zone   = "us-east-1a"
