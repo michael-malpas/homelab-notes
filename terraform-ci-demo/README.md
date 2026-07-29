@@ -122,6 +122,82 @@ Note:
 ```text
 Production deployments use a separate IAM role with GitHub Environment approval to simulate a multi-account enterprise deployment strategy.
 ```
+---
+
+# AWS Network Architecture
+
+```text
+                           Internet
+                              │
+                              │
+                         Internet Gateway
+                              │
+                              ▼
+
+┌─────────────────────────────────────────────────────┐
+│                    Custom VPC                       │
+│                                                     │
+│  CIDR: 10.0.0.0/16                                  │
+│                                                     │
+│                                                     │
+│  ┌───────────────────────┐                          │
+│  │   Public Subnet       │                          │
+│  │   10.0.1.0/24         │                          │
+│  │                       │                          │
+│  │  ┌─────────────────┐  │                          │
+│  │  │ Bastion Host    │  │                          │
+│  │  │ Public IP       │  │                          │
+│  │  │ Elastic IP      │  │                          │
+│  │  └─────────────────┘  │                          │
+│  │                       │                          │
+│  └───────────┬───────────┘                          │
+│              │                                      │
+│              │ NAT Gateway                          │
+│              │                                      │
+│              ▼                                      │
+│                                                     │
+│  ┌───────────────────────┐                          │
+│  │   Private Subnet      │                          │
+│  │   10.0.2.0/24         │                          │
+│  │                       │                          │
+│  │  ┌─────────────────┐  │                          │
+│  │  │ Internal Server │  │                          │
+│  │  │ No Public IP    │  │                          │
+│  │  └─────────────────┘  │                          │
+│  │                       │                          │
+│  └───────────────────────┘                          │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+
+
+Traffic Flow:
+
+SSH Administration:
+Internet
+   │
+   ▼
+Bastion Host
+   │
+   ▼
+Private Internal Server
+
+
+Outbound Updates:
+Private Server
+   │
+   ▼
+NAT Gateway
+   │
+   ▼
+Internet Gateway
+   │
+   ▼
+Internet
+```
+
+The infrastructure follows a segmented network design using public and private subnets. Public-facing resources are isolated from internal workloads, while private instances access external services through a NAT Gateway without requiring public IP addresses.
+
+Production environments are intended to follow the same architecture pattern using separate AWS accounts and Terraform state files.
 
 ---
 
@@ -153,6 +229,14 @@ Production deployments use a separate IAM role with GitHub Environment approval 
 - Separate Development and Production IAM roles
 - Customer-managed IAM policies
 - IAM policy validation using IAM Access Analyzer
+- Modular Terraform architecture
+- Custom AWS VPC architecture
+- Public and private subnet segmentation
+- Private networking using isolated subnets
+- NAT Gateway for private subnet outbound internet access
+- Elastic IP allocation for public networking components
+- Bastion host architecture for secure private instance access
+- Network segmentation between public and private workloads
 
 ---
 
@@ -357,8 +441,26 @@ The project incorporates several modern AWS security practices:
 
 The Terraform configuration provisions AWS infrastructure including:
 
+## Networking
+
+* Custom Amazon VPC
+* Public subnet
+* Private subnet
+* Internet Gateway
+* NAT Gateway
+* Elastic IP allocation
+* Route tables
+* Route table associations
+
+## Compute
+
 * EC2 instances
+* Bastion host
+* Private internal server
 * Security Groups
+
+## State Management
+
 * Remote Terraform state stored in Amazon S3
 * Terraform state locking using the S3 lockfile mechanism
 
@@ -447,7 +549,7 @@ Infrastructure changes must successfully pass all automated quality checks befor
 
 ---
 
-## Terraform Format (`terraform fmt`)
+## Terraform Format
 
 Terraform formatting ensures that all Terraform configuration files follow standard HashiCorp formatting conventions.
 
@@ -468,7 +570,7 @@ Benefits:
 
 ---
 
-## Terraform Validate (`terraform validate`)
+## Terraform Validate
 
 Terraform validation checks whether the Terraform configuration is syntactically correct and internally consistent.
 
@@ -822,6 +924,14 @@ This approach simplifies resource discovery, enables cost allocation, improves o
 - IAM Access Analyzer
 - Principle of Least Privilege
 - GitHub OIDC Federation
+- AWS VPC Networking
+- Public and Private Subnet Design
+- NAT Gateway Configuration
+- Elastic IP Management
+- Bastion Host Architecture
+- Network Security Design
+- AWS Route Tables
+- Infrastructure Network Segmentation
 
 ---
 
@@ -881,6 +991,9 @@ Major milestones include:
 12. Infrastructure security scanning with Checkov
 13. Cloud governance and standardized resource tagging
 14. Least-privilege IAM with customer-managed policies and IAM Access Analyzer
+15. Custom VPC Network with public and private subnets create
+16. Internet and Nat gateway created
+17. demonstrated that custom terraform modules can be used to create multiple resources and attach them to the correct subnets
 
 Future phases will focus on infrastructure testing, advanced AWS networking, Kubernetes, observability, and production-grade operational practices.
 
