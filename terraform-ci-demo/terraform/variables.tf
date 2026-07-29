@@ -14,11 +14,19 @@ variable "my_ip" {
   type = string
 }
 
-variable "server_name" {
+variable "public_server_name" {
   type = string
 }
 
-variable "instance_count" {
+variable "private_server_name" {
+  type = string
+}
+
+variable "public_instance_count" {
+  type = string
+}
+
+variable "private_instance_count" {
   type = string
 }
 

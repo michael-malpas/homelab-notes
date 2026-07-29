@@ -11,26 +11,17 @@ resource "aws_instance" "instance" {
     encrypted = true
   }
 
-  count = var.instance_count
-
-  ami = var.ami_id
-
+  count         = var.instance_count
+  ami           = var.ami_id
   instance_type = var.instance_type
-
-  monitoring = true
-
+  monitoring    = true
   ebs_optimized = true
-
-  key_name = var.key_name
-
-  user_data = var.user_data
-
+  key_name      = var.key_name
+  user_data     = var.user_data
   vpc_security_group_ids = [
     var.security_group_id
   ]
-
-  subnet_id = var.public_subnet_id
-
+  subnet_id = var.subnet_id
   tags = merge(
     var.common_tags,
     {

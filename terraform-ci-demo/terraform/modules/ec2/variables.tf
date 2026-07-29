@@ -34,6 +34,6 @@ variable "common_tags" {
   type = map(string)
 }
 
-variable "public_subnet_id" {
+variable "subnet_id" {
   type = string
 }
