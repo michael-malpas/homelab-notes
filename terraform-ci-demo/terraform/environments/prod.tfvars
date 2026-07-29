@@ -1,10 +1,10 @@
 aws_region             = "us-east-1"
-instance_type          = "t3.small"
+instance_type          = "t3.micro"
 key_name               = "devops-lab-key"
 public_server_name     = "web"
 private_server_name    = "app"
-public_instance_count  = 3
-private_instance_count = 2
+public_instance_count  = 2
+private_instance_count = 1
 environment            = "prod"
 vpc_cidr               = "10.1.0.0/16"
 public_subnet_cidr     = "10.1.1.0/24"
