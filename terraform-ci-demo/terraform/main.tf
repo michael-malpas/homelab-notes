@@ -87,21 +87,38 @@ module "network" {
   availability_zone   = var.availability_zone
 }
 
-module "web" {
+module "public_server" {
   source = "./modules/ec2"
 
   common_tags = local.common_tags
 
   # Pass required variables here
-  instance_count    = var.instance_count
+  instance_count    = var.public_instance_count
   ami_id            = data.aws_ami.ubuntu.id
   instance_type     = var.instance_type
   key_name          = var.key_name
   user_data         = file("${path.module}/userdata.sh")
   security_group_id = aws_security_group.web.id
-  server_name       = var.server_name
+  server_name       = var.public_server_name
   environment       = var.environment
-  public_subnet_id  = module.network.public_subnet_id
+  subnet_id         = module.network.public_subnet_id
+}
+
+module "private_server" {
+  source = "./modules/ec2"
+
+  common_tags = local.common_tags
+
+  # Pass required variables here
+  instance_count    = var.private_instance_count
+  ami_id            = data.aws_ami.ubuntu.id
+  instance_type     = var.instance_type
+  key_name          = var.key_name
+  user_data         = file("${path.module}/userdata.sh")
+  security_group_id = aws_security_group.web.id
+  server_name       = var.private_server_name
+  environment       = var.environment
+  subnet_id         = module.network.private_subnet_id
 }
 
 resource "local_file" "ansible_inventory" {
@@ -111,7 +128,8 @@ resource "local_file" "ansible_inventory" {
   content = templatefile(
     "${path.module}/inventory.tpl",
     {
-      public_ips = sort(module.web.public_ips)
+      public_server_ips  = sort(module.public_server.public_ips)
+      private_server_ips = sort(module.private_server.public_ips)
     }
   )
 }
