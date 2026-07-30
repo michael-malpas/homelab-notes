@@ -76,6 +76,11 @@ resource "aws_security_group" "web" {
   )
 }
 
+module "iam" {
+  source      = "./modules/iam"
+  environment = var.environment
+}
+
 module "network" {
   source = "./modules/network"
 
@@ -93,15 +98,16 @@ module "public_server" {
   common_tags = local.common_tags
 
   # Pass required variables here
-  instance_count    = var.public_instance_count
-  ami_id            = data.aws_ami.ubuntu.id
-  instance_type     = var.instance_type
-  key_name          = var.key_name
-  user_data         = file("${path.module}/userdata.sh")
-  security_group_id = aws_security_group.web.id
-  server_name       = var.public_server_name
-  environment       = var.environment
-  subnet_id         = module.network.public_subnet_id
+  instance_count       = var.public_instance_count
+  ami_id               = data.aws_ami.ubuntu.id
+  instance_type        = var.instance_type
+  key_name             = var.key_name
+  user_data            = file("${path.module}/userdata.sh")
+  security_group_id    = aws_security_group.web.id
+  server_name          = var.public_server_name
+  environment          = var.environment
+  subnet_id            = module.network.public_subnet_id
+  iam_instance_profile = module.iam.instance_profile_name
 }
 
 module "private_server" {
@@ -110,15 +116,16 @@ module "private_server" {
   common_tags = local.common_tags
 
   # Pass required variables here
-  instance_count    = var.private_instance_count
-  ami_id            = data.aws_ami.ubuntu.id
-  instance_type     = var.instance_type
-  key_name          = var.key_name
-  user_data         = file("${path.module}/userdata.sh")
-  security_group_id = aws_security_group.web.id
-  server_name       = var.private_server_name
-  environment       = var.environment
-  subnet_id         = module.network.private_subnet_id
+  instance_count       = var.private_instance_count
+  ami_id               = data.aws_ami.ubuntu.id
+  instance_type        = var.instance_type
+  key_name             = var.key_name
+  user_data            = file("${path.module}/userdata.sh")
+  security_group_id    = aws_security_group.web.id
+  server_name          = var.private_server_name
+  environment          = var.environment
+  subnet_id            = module.network.private_subnet_id
+  iam_instance_profile = module.iam.instance_profile_name
 }
 
 resource "local_file" "ansible_inventory" {
