@@ -125,8 +125,7 @@ Production deployments use a separate IAM role with GitHub Environment approval 
 ---
 
 # AWS Network Architecture
-
-```text
+```
                            Internet
                               │
                               │
@@ -148,12 +147,13 @@ Production deployments use a separate IAM role with GitHub Environment approval 
 │  │  │ Bastion Host    │  │                          │
 │  │  │ Public IP       │  │                          │
 │  │  │ Elastic IP      │  │                          │
+│  │  │ SSH Access      │  │                          │
 │  │  └─────────────────┘  │                          │
 │  │                       │                          │
 │  └───────────┬───────────┘                          │
 │              │                                      │
-│              │ NAT Gateway                          │
-│              │                                      │
+│              │ Traditional SSH                      │
+│              │ (Educational Lab)                    │
 │              ▼                                      │
 │                                                     │
 │  ┌───────────────────────┐                          │
@@ -163,36 +163,61 @@ Production deployments use a separate IAM role with GitHub Environment approval 
 │  │  ┌─────────────────┐  │                          │
 │  │  │ Internal Server │  │                          │
 │  │  │ No Public IP    │  │                          │
-│  │  └─────────────────┘  │                          │
-│  │                       │                          │
-│  └───────────────────────┘                          │
-│                                                     │
-└─────────────────────────────────────────────────────┘
+│  │  │ SSM Managed     │◄─┼───────────────┐          │
+│  │  └─────────────────┘  │               │          │
+│  │                       │               │          │
+│  └───────────────────────┘               │          │
+│                                          │          │
+└──────────────────────────────────────────┼──────────┘
+                                           │
+                                           │
+                                  AWS Systems Manager
+                                           │
+                                           │
+                                    IAM Instance Role
+                                           │
+                                           │
+                                  Temporary Credentials
 
 
 Traffic Flow:
 
-SSH Administration:
+Traditional Administration:
 Internet
+   │
+   ▼
+SSH Key Authentication
    │
    ▼
 Bastion Host
    │
    ▼
-Private Internal Server
+Private Instance
 
 
-Outbound Updates:
-Private Server
+Preferred Administration:
+
+Administrator
    │
    ▼
-NAT Gateway
+AWS Systems Manager Session Manager
    │
    ▼
-Internet Gateway
+IAM Role Authentication
    │
    ▼
-Internet
+Private Instance
+
+
+Outbound AWS Management:
+
+Private Instance
+   │
+   ▼
+SSM Agent
+   │
+   ▼
+AWS Systems Manager Endpoint
 ```
 
 The infrastructure follows a segmented network design using public and private subnets. Public-facing resources are isolated from internal workloads, while private instances access external services through a NAT Gateway without requiring public IP addresses.
@@ -237,6 +262,11 @@ Production environments are intended to follow the same architecture pattern usi
 - Elastic IP allocation for public networking components
 - Bastion host architecture for secure private instance access
 - Network segmentation between public and private workloads
+- AWS Systems Manager Session Manager integration
+- IAM instance profiles for EC2 authentication
+- Temporary AWS credentials through IAM roles
+- SSH key-based bastion access demonstration
+- Private EC2 administration without public IP addresses
 
 ---
 
@@ -244,9 +274,15 @@ Production environments are intended to follow the same architecture pattern usi
 
 ## Cloud
 
-* AWS EC2
-* AWS IAM
-* Amazon S3
+- AWS EC2
+- AWS IAM
+- Amazon S3
+- AWS Systems Manager Session Manager
+- EC2 IAM Role Authentication
+- IAM Instance Profiles
+- Temporary Credential Management
+- Secure EC2 Access Architecture
+- SSH Bastion Host Design
 
 ## Infrastructure as Code
 
@@ -352,6 +388,107 @@ Benefits include:
 
 ---
 
+# EC2 Access and Session Management
+
+## SSH Key Authentication (Original Design)
+
+The original infrastructure design used SSH key-based authentication to access EC2 instances.
+
+SSH keys are commonly used because:
+
+* They provide stronger authentication than passwords
+* Private keys remain with the administrator
+* Public keys can be securely distributed to servers
+* They are widely supported across Linux environments
+
+The initial bastion host architecture followed a traditional cloud administration model:
+
+```text
+Administrator
+      │
+      ▼
+SSH Private Key
+      │
+      ▼
+Public Bastion Host
+      │
+      ▼
+Private EC2 Instance
+```
+
+## AWS Systems Manager Session Manager (Current Approach)
+
+The project now uses AWS Systems Manager Session Manager as the preferred method for managing private EC2 instances.
+
+Session Manager removes the requirement for inbound SSH access and provides secure shell access through AWS IAM authentication.
+
+The access flow is:
+```text
+Administrator
+      │
+      ▼
+AWS Console / AWS CLI
+      │
+      ▼
+Systems Manager Session Manager
+      │
+      ▼
+SSM Agent on EC2 Instance
+      │
+      ▼
+Private EC2 Instance
+```
+
+Benefits of Session Manager include:
+
+* No SSH keys required
+* No public IP address required
+* No inbound port 22 security group rules required
+* IAM-based access control
+* Centralized session logging capability
+* Integration with AWS CloudTrail
+* Temporary authentication instead of permanent credentials
+
+---
+
+## IAM Roles and Temporary EC2 Credentials
+
+EC2 instances use IAM roles to securely authenticate with AWS services.
+
+Instead of storing AWS access keys directly on an instance, an IAM role is attached through an instance profile.
+
+The authentication flow is:
+
+```text
+EC2 Instance
+      │
+      ▼
+IAM Instance Profile
+      │
+      ▼
+IAM Role
+      │
+      ▼
+AWS STS Temporary Credentials
+      │
+      ▼
+AWS Systems Manager
+```
+
+When the EC2 instance starts, AWS automatically provides temporary credentials through the instance metadata service.
+
+These credentials are:
+
+* Automatically rotated
+* Short-lived
+* Scoped by IAM permissions
+* Not stored in configuration files
+
+The private internal server uses an IAM role with permissions required by Systems Manager, allowing it to register as a managed instance without requiring SSH access.
+
+This follows the AWS recommended security model of using IAM roles and temporary credentials instead of long-lived access keys.
+
+---
 # Security Design Decisions
 
 Several security-focused design decisions have been incorporated throughout the project.
@@ -994,6 +1131,8 @@ Major milestones include:
 15. Custom VPC Network with public and private subnets create
 16. Internet and Nat gateway created
 17. demonstrated that custom terraform modules can be used to create multiple resources and attach them to the correct subnets
+18. Migrated private instance administration from SSH-based access to AWS Systems Manager Session Manager
+19. Implemented IAM instance roles for secure EC2 authentication without stored credentials
 
 Future phases will focus on infrastructure testing, advanced AWS networking, Kubernetes, observability, and production-grade operational practices.
 
