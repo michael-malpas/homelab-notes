@@ -1,7 +1,5 @@
 resource "aws_instance" "instance" {
 
-  #checkov:skip=CKV2_AWS_41:IAM instance profile will be added in a future iteration
-
   metadata_options {
     http_endpoint = "enabled"
     http_tokens   = "required"
@@ -23,11 +21,7 @@ resource "aws_instance" "instance" {
   ]
   subnet_id            = var.subnet_id
   iam_instance_profile = var.iam_instance_profile
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-${var.server_name}${count.index + 1}"
-    }
-  )
-
+  tags = {
+    Name = "${var.environment}-${var.server_name}${count.index + 1}"
+  }
 }

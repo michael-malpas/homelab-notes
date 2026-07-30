@@ -7,12 +7,9 @@ resource "aws_vpc" "vpc" {
   enable_dns_support   = true
   enable_dns_hostnames = true
 
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-vpc"
-    }
-  )
+  tags = {
+    Name = "${var.environment}-vpc"
+  }
 }
 
 resource "aws_subnet" "public" {
@@ -25,12 +22,9 @@ resource "aws_subnet" "public" {
   availability_zone       = var.availability_zone
   map_public_ip_on_launch = true
 
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-public-subnet"
-    }
-  )
+  tags = {
+    Name = "${var.environment}-public-subnet"
+  }
 }
 
 resource "aws_subnet" "private" {
@@ -41,12 +35,9 @@ resource "aws_subnet" "private" {
   cidr_block        = var.private_subnet_cidr
   availability_zone = var.availability_zone
 
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-private-subnet"
-    }
-  )
+  tags = {
+    Name = "${var.environment}-private-subnet"
+  }
 }
 
 resource "aws_internet_gateway" "main" {
@@ -55,12 +46,9 @@ resource "aws_internet_gateway" "main" {
 
   vpc_id = aws_vpc.vpc.id
 
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-gateway"
-    }
-  )
+  tags = {
+    Name = "${var.environment}-gateway"
+  }
 }
 
 resource "aws_route_table" "public" {
@@ -69,12 +57,9 @@ resource "aws_route_table" "public" {
 
   vpc_id = aws_vpc.vpc.id
 
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-public-route-table"
-    }
-  )
+  tags = {
+    Name = "${var.environment}-public-route-table"
+  }
 }
 
 resource "aws_route" "public_internet" {
@@ -97,12 +82,9 @@ resource "aws_route_table" "private" {
 
   vpc_id = aws_vpc.vpc.id
 
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-private-route-table"
-    }
-  )
+  tags = {
+    Name = "${var.environment}-private-route-table"
+  }
 }
 
 resource "aws_route" "private_internet" {
@@ -123,24 +105,19 @@ resource "aws_eip" "nat" {
 
   domain = "vpc"
 
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-nat-eip"
-    }
-  )
+  tags = {
+    Name = "${var.environment}-nat-eip"
+  }
 }
 
 resource "aws_nat_gateway" "nat-gw" {
   subnet_id     = aws_subnet.public.id
   allocation_id = aws_eip.nat.id
 
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.environment}-nat"
-    }
-  )
+  tags = {
+    Name = "${var.environment}-nat"
+  }
+
   depends_on = [aws_internet_gateway.main]
 }
 

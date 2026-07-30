@@ -14,6 +14,18 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+
+  default_tags {
+    tags = {
+      Environment  = var.environment
+      Project      = "terraform-ci-demo"
+      Owner        = "Michael Malpas"
+      ManagedBy    = "Terraform"
+      Repository   = "homelab-notes/terraform-ci-demo"
+      CostCenter   = "Homelab"
+      AutoDeployed = "True"
+    }
+  }
 }
 
 data "aws_ami" "ubuntu" {
@@ -68,12 +80,9 @@ resource "aws_security_group" "web" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "${var.environment}-web-sg"
-    }
-  )
+  tags = {
+    Name = "${var.environment}-web-sg"
+  }
 }
 
 module "iam" {
@@ -84,7 +93,6 @@ module "iam" {
 module "network" {
   source = "./modules/network"
 
-  common_tags         = local.common_tags
   environment         = var.environment
   vpc_cidr            = var.vpc_cidr
   public_subnet_cidr  = var.public_subnet_cidr
@@ -94,8 +102,6 @@ module "network" {
 
 module "public_server" {
   source = "./modules/ec2"
-
-  common_tags = local.common_tags
 
   # Pass required variables here
   instance_count       = var.public_instance_count
@@ -112,8 +118,6 @@ module "public_server" {
 
 module "private_server" {
   source = "./modules/ec2"
-
-  common_tags = local.common_tags
 
   # Pass required variables here
   instance_count       = var.private_instance_count
