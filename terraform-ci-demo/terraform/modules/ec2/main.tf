@@ -21,7 +21,8 @@ resource "aws_instance" "instance" {
   vpc_security_group_ids = [
     var.security_group_id
   ]
-  subnet_id = var.subnet_id
+  subnet_id            = var.subnet_id
+  iam_instance_profile = var.iam_instance_profile
   tags = merge(
     var.common_tags,
     {
