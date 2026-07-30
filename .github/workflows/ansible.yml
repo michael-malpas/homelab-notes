@@ -24,6 +24,10 @@ jobs:
         working-directory: ansible-demo
         run: ansible-playbook playbook.yml --syntax-check
 
-      - name: Validate terraform-ci-demo ansible playbooks
+      - name: Validate Ansible playbooks
         working-directory: terraform-ci-demo/ansible
-        run: ansible-playbook playbook.yml --syntax-check
+        run: |
+          for playbook in playbooks/*.yml; do
+            echo "Validating $playbook"
+            ansible-playbook "$playbook" --syntax-check
+          done
