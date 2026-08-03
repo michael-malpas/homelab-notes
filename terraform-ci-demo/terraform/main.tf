@@ -39,50 +39,12 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-resource "aws_security_group" "web" {
-
-  #checkov:skip=CKV_AWS_382:EC2 instances require outbound internet access for package updates
-  #checkov:skip=CKV_AWS_260:Public HTTP access required for web server demo
-
-
-  name        = "${var.environment}-web-sg"
-  description = "ec2 web server rules"
+module "security" {
+  source      = "./modules/security"
+  environment = var.environment
 
   vpc_id = module.network.vpc_id
-
-  ingress {
-    description = "SSH access from admin IP"
-
-    from_port = 22
-    to_port   = 22
-    protocol  = "tcp"
-
-    cidr_blocks = ["${var.my_ip}/32"]
-  }
-
-  ingress {
-    description = "HTTP web traffic"
-
-    from_port = 80
-    to_port   = 80
-    protocol  = "tcp"
-
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    description = "Allow outbound internet access"
-
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.environment}-web-sg"
-  }
+  my_ip  = var.my_ip
 }
 
 module "iam" {
@@ -109,7 +71,7 @@ module "public_server" {
   instance_type        = var.instance_type
   key_name             = var.key_name
   user_data            = file("${path.module}/userdata.sh")
-  security_group_id    = aws_security_group.web.id
+  security_group_id    = module.security.bastion_security_group_id
   server_name          = var.public_server_name
   environment          = var.environment
   subnet_id            = module.network.public_subnet_id
@@ -125,7 +87,7 @@ module "private_server" {
   instance_type        = var.instance_type
   key_name             = var.key_name
   user_data            = file("${path.module}/userdata.sh")
-  security_group_id    = aws_security_group.web.id
+  security_group_id    = module.security.application_security_group_id
   server_name          = var.private_server_name
   environment          = var.environment
   subnet_id            = module.network.private_subnet_id
