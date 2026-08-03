@@ -1,6 +1,6 @@
 resource "aws_security_group" "bastion" {
-#checkov:skip=CKV_AWS_382: Default AWS outbound access; egress hardening will be implemented later
-#checkov:skip=CKV2_AWS_5: Security group is attached to EC2 instances through the public_server module
+  #checkov:skip=CKV_AWS_382: Default AWS outbound access; egress hardening will be implemented later
+  #checkov:skip=CKV2_AWS_5: Security group is attached to EC2 instances through the public_server module
 
   name        = "${var.environment}-bastion-sg"
   description = "Bastion Security Group"
@@ -33,9 +33,9 @@ resource "aws_security_group" "bastion" {
 }
 
 resource "aws_security_group" "alb" {
-#checkov:skip=CKV_AWS_260: Public ALB intentionally serves HTTP traffic
-#checkov:skip=CKV_AWS_382: Default AWS outbound access; egress hardening will be implemented later
-#checkov:skip=CKV2_AWS_5: Security group will be attached to alb in the future
+  #checkov:skip=CKV_AWS_260: Public ALB intentionally serves HTTP traffic
+  #checkov:skip=CKV_AWS_382: Default AWS outbound access; egress hardening will be implemented later
+  #checkov:skip=CKV2_AWS_5: Security group will be attached to alb in the future
 
   name        = "${var.environment}-alb-sg"
   description = "Load Balancer Security Group"
@@ -77,8 +77,8 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_security_group" "application" {
-#checkov:skip=CKV_AWS_382: Default AWS outbound access; egress hardening will be implemented later
-#checkov:skip=CKV2_AWS_5: Security group is attached to EC2 instances through the private_server module
+  #checkov:skip=CKV_AWS_382: Default AWS outbound access; egress hardening will be implemented later
+  #checkov:skip=CKV2_AWS_5: Security group is attached to EC2 instances through the private_server module
 
   name        = "${var.environment}-application-sg"
   description = "Application Security Group"
