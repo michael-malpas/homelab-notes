@@ -15,7 +15,7 @@ resource "aws_lb" "alb" {
   }
 }
 
-resource "aws_lb_target_group" "alb_tg" {
+resource "aws_lb_target_group" "alb-tg" {
   name     = "${var.environment}-alb-tg"
   port     = 80
   protocol = "HTTP"
@@ -31,14 +31,14 @@ resource "aws_lb_target_group" "alb_tg" {
   }
 
   tags = {
-    Name = "${var.environment}-alb_tg"
+    Name = "${var.environment}-alb-tg"
   }
 }
 
-resource "aws_lb_target_group_attachment" "alb_tg_attach" {
+resource "aws_lb_target_group_attachment" "alb-tg-attach" {
   count = length(var.application_instance_id)
 
-  target_group_arn = aws_lb_target_group.alb_tg.arn
+  target_group_arn = aws_lb_target_group.alb-tg.arn
   target_id        = var.application_instance_id[count.index]
   port             = 80
 }
@@ -51,6 +51,6 @@ resource "aws_lb_listener" "http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.alb_tg.arn
+    target_group_arn = aws_lb_target_group.alb-tg.arn
   }
 }
