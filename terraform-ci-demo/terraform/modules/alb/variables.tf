@@ -17,3 +17,9 @@ variable "application_instance_id" {
 variable "environment" {
   type = string
 }
+
+variable "enable_deletion_protection" {
+  type    = bool
+  default = false
+}
+

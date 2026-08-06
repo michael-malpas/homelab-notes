@@ -1,5 +1,5 @@
 output "alb_dns_name" {
-  value = aws_lb.alb.id
+  value = aws_lb.alb.dns_name
 }
 
 output "alb_arn" {
@@ -7,5 +7,5 @@ output "alb_arn" {
 }
 
 output "target_group_arn" {
-  value = aws_lb_target_group.alb_tg.arn
+  value = aws_lb_target_group.alb-tg.arn
 }
