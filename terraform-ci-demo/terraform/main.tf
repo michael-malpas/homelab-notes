@@ -52,14 +52,23 @@ module "iam" {
   environment = var.environment
 }
 
+module "alb" {
+  source                  = "./modules/alb"
+  environment             = var.environment
+  public_subnet_ids       = module.network.public_subnet_ids
+  vpc_id                  = module.network.vpc_id
+  alb_security_group_id   = module.security.alb_security_group_id
+  application_instance_id = module.private_server.instance_ids
+}
+
 module "network" {
   source = "./modules/network"
 
-  environment         = var.environment
-  vpc_cidr            = var.vpc_cidr
-  public_subnet_cidr  = var.public_subnet_cidr
-  private_subnet_cidr = var.private_subnet_cidr
-  availability_zone   = var.availability_zone
+  environment          = var.environment
+  vpc_cidr             = var.vpc_cidr
+  public_subnet_cidrs  = var.public_subnet_cidrs
+  private_subnet_cidrs = var.private_subnet_cidrs
+  availability_zones   = var.availability_zones
 }
 
 module "public_server" {
