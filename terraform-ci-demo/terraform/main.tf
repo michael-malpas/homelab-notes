@@ -53,12 +53,13 @@ module "iam" {
 }
 
 module "alb" {
-  source                  = "./modules/alb"
-  environment             = var.environment
-  public_subnet_ids       = module.network.public_subnet_ids
-  vpc_id                  = module.network.vpc_id
-  alb_security_group_id   = module.security.alb_security_group_id
-  application_instance_id = module.private_server.instance_ids
+  source                     = "./modules/alb"
+  environment                = var.environment
+  public_subnet_ids          = module.network.public_subnet_ids
+  vpc_id                     = module.network.vpc_id
+  alb_security_group_id      = module.security.alb_security_group_id
+  application_instance_id    = module.private_server.instance_ids
+  enable_deletion_prevention = var.enable_deletion_prevention
 }
 
 module "network" {
