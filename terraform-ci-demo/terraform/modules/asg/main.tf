@@ -12,7 +12,7 @@ resource "aws_launch_template" "application" {
     var.application_security_group_id
   ]
 
-  user_data = var.user_data
+  user_data = base64encode(var.user_data)
 
   metadata_options {
     http_endpoint = "enabled"
