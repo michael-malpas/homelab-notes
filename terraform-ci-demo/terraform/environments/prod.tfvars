@@ -1,6 +1,5 @@
 aws_region    = "us-east-1"
 instance_type = "t3.micro"
-key_name      = "devops-lab-key"
 server_name   = "app"
 environment   = "prod"
 vpc_cidr      = "10.1.0.0/16"
