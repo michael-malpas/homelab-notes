@@ -6,27 +6,11 @@ variable "instance_type" {
   type = string
 }
 
-variable "key_name" {
-  type = string
-}
-
 variable "my_ip" {
   type = string
 }
 
-variable "public_server_name" {
-  type = string
-}
-
-variable "private_server_name" {
-  type = string
-}
-
-variable "public_instance_count" {
-  type = string
-}
-
-variable "private_instance_count" {
+variable "server_name" {
   type = string
 }
 
@@ -53,4 +37,16 @@ variable "availability_zones" {
 variable "enable_deletion_protection" {
   type    = bool
   default = false
+}
+
+variable "min_size" {
+  type = string
+}
+
+variable "desired_size" {
+  type = string
+}
+
+variable "max_size" {
+  type = string
 }

@@ -43,14 +43,6 @@ resource "aws_lb_target_group" "alb-tg" {
   }
 }
 
-resource "aws_lb_target_group_attachment" "alb-tg-attach" {
-  count = length(var.application_instance_id)
-
-  target_group_arn = aws_lb_target_group.alb-tg.arn
-  target_id        = var.application_instance_id[count.index]
-  port             = 80
-}
-
 resource "aws_lb_listener" "http" {
   #checkov:skip=CKV_AWS_2:HTTPS listener requires ACM certificate configuration.
   #checkov:skip=CKV_AWS_103:TLS policy requires HTTPS listener implementation.

@@ -1,37 +1,3 @@
-resource "aws_security_group" "bastion" {
-  #checkov:skip=CKV_AWS_382: Default AWS outbound access; egress hardening will be implemented later
-  #checkov:skip=CKV2_AWS_5: Security group is attached to EC2 instances through the public_server module
-
-  name        = "${var.environment}-bastion-sg"
-  description = "Bastion Security Group"
-
-  vpc_id = var.vpc_id
-
-  ingress {
-    description = "SSH access from admin IP"
-
-    from_port = 22
-    to_port   = 22
-    protocol  = "tcp"
-
-    cidr_blocks = ["${var.my_ip}/32"]
-  }
-
-  egress {
-    description = "Outbound allow all traffic"
-
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.environment}-bastion-sg"
-  }
-}
-
 resource "aws_security_group" "alb" {
   #checkov:skip=CKV_AWS_260: Public ALB intentionally serves HTTP traffic
   #checkov:skip=CKV_AWS_382: Default AWS outbound access; egress hardening will be implemented later
