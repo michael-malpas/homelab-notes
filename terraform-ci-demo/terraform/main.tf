@@ -1,17 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 6.0"
-    }
-
-    local = {
-      source  = "hashicorp/local"
-      version = ">= 2.5"
-    }
-  }
-}
-
 provider "aws" {
   region = var.aws_region
 
@@ -44,7 +30,6 @@ module "security" {
   environment = var.environment
 
   vpc_id = module.network.vpc_id
-  my_ip  = var.my_ip
 }
 
 module "iam" {
