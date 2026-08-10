@@ -8,17 +8,17 @@ variable "vpc_cidr" {
   type        = string
 }
 
-variable "public_subnet_cidr" {
+variable "public_subnet_cidrs" {
   description = "public ip subnet cidr"
-  type        = string
+  type        = list(string)
 }
 
-variable "private_subnet_cidr" {
+variable "private_subnet_cidrs" {
   description = "private ip subnet cidr"
-  type        = string
+  type        = list(string)
 }
 
-variable "availability_zone" {
+variable "availability_zones" {
   description = "availability zone definition"
-  type        = string
+  type        = list(string)
 }
