@@ -59,7 +59,7 @@ module "alb" {
   vpc_id                     = module.network.vpc_id
   alb_security_group_id      = module.security.alb_security_group_id
   application_instance_id    = module.private_server.instance_ids
-  enable_deletion_prevention = var.enable_deletion_prevention
+  enable_deletion_protection = var.enable_deletion_protection
 }
 
 module "network" {
