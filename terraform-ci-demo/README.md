@@ -18,6 +18,7 @@
 - [GitHub Actions Workflows](#github-actions-workflows)
 - [Quality Assurance](#quality-assurance)
 - [How the CI/CD Pipeline Works](#how-the-cicd-pipeline-works)
+- [Auto Scaling](#auto-scaling)
 
 ### Deployment
 - [Getting Started](#getting-started)
@@ -267,6 +268,14 @@ Production environments are intended to follow the same architecture pattern usi
 - Temporary AWS credentials through IAM roles
 - SSH key-based bastion access demonstration
 - Private EC2 administration without public IP addresses
+- Application Load Balancer integration
+- EC2 Launch Templates
+- Auto Scaling Groups
+- Multi-AZ application deployment
+- Target Group integration
+- ELB health checks
+- Automatic EC2 instance replacement
+- Self-healing application infrastructure
 
 ---
 
@@ -591,10 +600,16 @@ The Terraform configuration provisions AWS infrastructure including:
 
 ## Compute
 
-* EC2 instances
-* Bastion host
-* Private internal server
-* Security Groups
+- EC2 instances
+- EC2 Launch Templates
+- Auto Scaling Groups
+- Multi-AZ application deployment
+- Application Load Balancer
+- Target Groups
+- ELB health checks
+- Automatic instance replacement
+- Bastion host
+- Security Groups
 
 ## State Management
 
@@ -872,6 +887,302 @@ Ansible Configuration
 
 ---
 
+# Auto Scaling
+
+The infrastructure uses an AWS Auto Scaling architecture to provide improved availability, fault tolerance, and automatic instance replacement.
+
+The application tier is deployed using an **EC2 Launch Template** and an **Auto Scaling Group (ASG)**. The ASG integrates with an **Application Load Balancer (ALB)** through an AWS Target Group.
+
+This architecture allows the environment to automatically maintain the desired number of healthy application instances and replace instances when they become unhealthy.
+
+## Auto Scaling Architecture
+
+```text
+                              Internet
+                                  │
+                                  ▼
+                         Application Load
+                            Balancer (ALB)
+                                  │
+                                  ▼
+                           Target Group
+                                  │
+                                  ▼
+                     Auto Scaling Group (ASG)
+                         Desired Capacity
+                                  │
+                    ┌─────────────┴─────────────┐
+                    │                           │
+                    ▼                           ▼
+              EC2 Instance                 EC2 Instance
+              Availability Zone A           Availability Zone B
+                    │                           │
+                    └─────────────┬─────────────┘
+                                  │
+                                  ▼
+                         Launch Template
+```
+
+The Launch Template defines how new application instances are created, while the Auto Scaling Group controls how many instances should be running and where they are deployed.
+
+---
+
+## Launch Templates
+
+The Auto Scaling Group uses an AWS EC2 Launch Template to define the configuration of application instances.
+
+The Launch Template contains configuration such as:
+
+* AMI
+* Instance type
+* IAM instance profile
+* Security groups
+* User data
+* SSH key configuration where required
+* Instance metadata configuration
+
+When the Auto Scaling Group needs to create a new instance, it uses the Launch Template as the blueprint.
+
+This provides a consistent and repeatable method of creating application servers.
+
+Instead of manually configuring individual EC2 instances, every replacement instance is created from the same infrastructure definition.
+
+The resulting flow is:
+
+```text
+Launch Template
+       │
+       ▼
+Auto Scaling Group
+       │
+       ▼
+New EC2 Instance
+       │
+       ▼
+User Data / Bootstrap
+       │
+       ▼
+Application Server
+```
+
+---
+
+## Auto Scaling Groups
+
+The Auto Scaling Group manages the application's EC2 instances.
+
+The ASG is responsible for maintaining the desired number of application instances and automatically launching or terminating instances as required.
+
+The group defines:
+
+* Minimum capacity
+* Desired capacity
+* Maximum capacity
+* VPC subnets
+* Launch Template
+* Target Group integration
+* Health check configuration
+
+For example:
+
+```text
+Minimum Capacity: 2
+Desired Capacity: 2
+Maximum Capacity: 4
+```
+
+This configuration ensures that the application maintains at least two instances while allowing additional capacity to be introduced as the environment grows.
+
+The ASG also prevents the environment from depending on a single EC2 instance.
+
+---
+
+## Multi-AZ Deployment
+
+The Auto Scaling Group is configured to use multiple Availability Zones.
+
+For example:
+
+```text
+AWS Region
+│
+├── Availability Zone A
+│      │
+│      └── EC2 Instance
+│
+└── Availability Zone B
+       │
+       └── EC2 Instance
+```
+
+Deploying instances across multiple Availability Zones improves application availability because the application does not depend on a single Availability Zone.
+
+If an individual instance becomes unavailable, the remaining instance can continue serving traffic while the Auto Scaling Group launches a replacement.
+
+Multi-AZ deployment also provides protection against an Availability Zone-level failure.
+
+---
+
+## Target Group Integration
+
+The Auto Scaling Group is integrated with an AWS Target Group associated with the Application Load Balancer.
+
+The traffic flow is:
+
+```text
+Client
+  │
+  ▼
+ALB
+  │
+  ▼
+Target Group
+  │
+  ├── EC2 Instance
+  │
+  └── EC2 Instance
+```
+
+When the Auto Scaling Group launches a new instance, the instance is automatically registered with the Target Group.
+
+When an instance is terminated or removed from the Auto Scaling Group, it is removed from the Target Group.
+
+This allows the load balancer to dynamically track the current application fleet without requiring manual registration of EC2 instances.
+
+---
+
+## ELB Health Checks
+
+The Application Load Balancer uses health checks to determine whether application instances are capable of receiving traffic.
+
+For example, the Target Group can perform an HTTP health check against:
+
+```text
+/
+```
+
+or another application health endpoint.
+
+The health check verifies that the application is responding successfully.
+
+The traffic flow is:
+
+```text
+ALB
+ │
+ ▼
+Target Group
+ │
+ ▼
+Health Check
+ │
+ ├── Healthy
+ │      │
+ │      └── Receives Application Traffic
+ │
+ └── Unhealthy
+        │
+        └── Removed from Traffic
+```
+
+An unhealthy instance is no longer considered a valid target by the load balancer.
+
+The Auto Scaling Group can then identify the unhealthy instance and replace it.
+
+This creates an automated recovery mechanism without requiring an administrator to manually detect and replace failed instances.
+
+---
+
+## Automatic Instance Replacement
+
+One of the primary benefits of the Auto Scaling architecture is automatic instance replacement.
+
+If an EC2 instance becomes unhealthy, the Auto Scaling Group can terminate the unhealthy instance and launch a replacement using the Launch Template.
+
+The recovery process is:
+
+```text
+EC2 Instance
+      │
+      ▼
+ALB Health Check
+      │
+      ▼
+Instance Unhealthy
+      │
+      ▼
+Removed From Target Group
+      │
+      ▼
+Auto Scaling Group
+      │
+      ▼
+Unhealthy Instance Terminated
+      │
+      ▼
+Launch Template
+      │
+      ▼
+Replacement EC2 Instance
+      │
+      ▼
+Target Group
+      │
+      ▼
+Health Check
+      │
+      ▼
+Healthy
+      │
+      ▼
+Receives Traffic
+```
+
+This provides self-healing behavior for the application tier.
+
+The infrastructure therefore does not rely on an administrator manually replacing failed EC2 instances.
+
+---
+
+## Application Availability
+
+The combined ALB, Target Group, and Auto Scaling architecture provides multiple layers of availability:
+
+```text
+                    Application Load Balancer
+                              │
+                              ▼
+                         Target Group
+                              │
+                 ┌────────────┴────────────┐
+                 │                         │
+                 ▼                         ▼
+          EC2 Instance A             EC2 Instance B
+          Availability Zone A        Availability Zone B
+                 │                         │
+                 └────────────┬────────────┘
+                              │
+                       Auto Scaling Group
+                              │
+                              ▼
+                       Launch Template
+```
+
+This architecture provides:
+
+* Load balancing
+* Multi-AZ deployment
+* Health monitoring
+* Automatic instance replacement
+* Consistent instance configuration
+* Improved application availability
+* Reduced dependence on individual EC2 instances
+
+The architecture represents a significant progression from manually managed EC2 infrastructure toward a more resilient and self-healing cloud architecture.
+
+
+---
+
 # Getting Started
 
 ## Prerequisites
@@ -1069,6 +1380,15 @@ This approach simplifies resource discovery, enables cost allocation, improves o
 - Network Security Design
 - AWS Route Tables
 - Infrastructure Network Segmentation
+- AWS Application Load Balancer
+- EC2 Launch Templates
+- Auto Scaling Groups
+- Multi-AZ Architecture
+- Target Group Configuration
+- ELB Health Checks
+- Automatic Instance Replacement
+- Self-Healing Infrastructure
+- High Availability Architecture
 
 ---
 
@@ -1079,7 +1399,19 @@ Planned enhancements include:
 - Automated cost anomaly detection
 - AWS Cost and Usage Reports (CUR)
 - Policy-as-Code using Open Policy Agent (OPA)
-- Application Load Balancers
+- Advanced Auto Scaling policies
+- Target tracking scaling policies
+- CloudWatch-based scaling metrics
+- Route 53 and DNS
+- TLS certificate management
+- Automated cost anomaly detection
+- AWS Cost and Usage Reports (CUR)
+- Policy-as-Code using Open Policy Agent (OPA)
+- AWS Organizations and true multi-account architecture (potentially, understand principle but want to avoid costs)
+- Kubernetes deployment
+- Monitoring and observability (Prometheus/Grafana)
+- Centralized logging
+- Advanced Terraform testing frameworks
 - Route 53 and DNS
 - TLS certificate management
 - AWS Organizations and true multi-account architecture (potentially, understand principle but want to avoid costs)
@@ -1133,8 +1465,12 @@ Major milestones include:
 17. demonstrated that custom terraform modules can be used to create multiple resources and attach them to the correct subnets
 18. Migrated private instance administration from SSH-based access to AWS Systems Manager Session Manager
 19. Implemented IAM instance roles for secure EC2 authentication without stored credentials
+20. Implemented an Application Load Balancer and Target Group architecture
+21. Implemented EC2 Launch Templates and Auto Scaling Groups
+22. Implemented Multi-AZ application deployment and health checks
+23. Implemeneted automatic instance replacement and self-healing infrastructure
 
-Future phases will focus on infrastructure testing, advanced AWS networking, Kubernetes, observability, and production-grade operational practices.
+Future phases will focus on infrastructure testing, advanced AWS networking and application resilience, Kubernetes, observability, and production-grade operational practices.
 
 ---
 
