@@ -21,7 +21,6 @@ cat <<EOF > /var/www/html/index.html
 <p>Availability Zone: $AZ</p>
 EOF
 
-
 useradd -m -s /bin/bash deploy
 
 mkdir /home/deploy/.ssh
