@@ -68,9 +68,10 @@ module "asg" {
   private_subnet_ids            = module.network.private_subnet_ids
   target_group_arn              = module.alb.target_group_arn
 
-  min_size     = var.min_size
-  desired_size = var.desired_size
-  max_size     = var.max_size
+  min_size         = var.min_size
+  desired_size     = var.desired_size
+  max_size         = var.max_size
+  root_volume_size = var.root_volume_size
 
   user_data = file("${path.module}/userdata.sh")
 }

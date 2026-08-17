@@ -3,279 +3,198 @@
 ## Table of Contents
 
 ### Project
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Features](#features)
-- [Technologies Used](#technologies-used)
-- [Repository Structure](#repository-structure)
-- [Authentication](#authentication)
-- [Security Design Decisions](#security-design-decisions)
-- [Security Highlights](#security-highlights)
+
+* [Overview](#overview)
+* [Architecture](#architecture)
+* [Features](#features)
+* [Technologies Used](#technologies-used)
+* [Repository Structure](#repository-structure)
+* [Authentication](#authentication)
+* [Security Design Decisions](#security-design-decisions)
 
 ### Infrastructure
-- [Terraform Resources](#terraform-resources)
-- [Terraform Modules](#terraform-modules)
-- [GitHub Actions Workflows](#github-actions-workflows)
-- [Quality Assurance](#quality-assurance)
-- [How the CI/CD Pipeline Works](#how-the-cicd-pipeline-works)
-- [Auto Scaling](#auto-scaling)
+
+* [Terraform Resources](#terraform-resources)
+* [Terraform Modules](#terraform-modules)
+* [Network Architecture](#network-architecture)
+* [Security Groups](#security-groups)
+* [Application Compute](#application-compute)
+* [GitHub Actions Workflows](#github-actions-workflows)
+* [Quality Assurance](#quality-assurance)
+* [How the CI/CD Pipeline Works](#how-the-cicd-pipeline-works)
 
 ### Deployment
-- [Getting Started](#getting-started)
-- [Repository Configuration](#repository-configuration)
+
+* [Getting Started](#getting-started)
+* [Repository Configuration](#repository-configuration)
+* [Environment Separation](#environment-separation)
 
 ### Design
-- [Design Decisions](#design-decisions)
+
+* [Design Decisions](#design-decisions)
+* [Infrastructure Governance](#infrastructure-governance)
+* [Cost Governance](#cost-governance)
 
 ### Screenshots
-- [GitHub Actions Pipeline](#github-actions-pipeline)
-- [Terraform Plan](#terraform-plan)
-- [GitHub Environment Approval](#github-environment-approval)
-- [AWS EC2 Instance](#aws-ec2-instance)
+
+* [GitHub Actions Pipeline](#github-actions-pipeline)
+* [Terraform Plan](#terraform-plan)
+* [GitHub Environment Approval](#github-environment-approval)
+* [AWS Architecture](#aws-architecture)
+* [AWS EC2 Instances](#aws-ec2-instances)
 
 ### Portfolio
-- [Skills Demonstrated](#skills-demonstrated)
-- [Future Improvements](#future-improvements)
-- [Lessons Learned](#lessons-learned)
-- [Project Evolution](#project-evolution)
-- [License](#license)
 
-## Overview
+* [Skills Demonstrated](#skills-demonstrated)
+* [Future Improvements](#future-improvements)
+* [Lessons Learned](#lessons-learned)
+* [Project Evolution](#project-evolution)
+* [License](#license)
+
+---
+
+# Overview
 
 This project demonstrates a production-inspired Infrastructure as Code (IaC) workflow using **Terraform**, **GitHub Actions**, **AWS**, and **Ansible**.
 
-The project provisions AWS infrastructure with Terraform while automating validation, security scanning, planning, approval, and deployment through GitHub Actions. Infrastructure changes are reviewed through pull requests before being promoted through Development and Production deployment workflows.
+The project provisions AWS infrastructure with Terraform while automating validation, security scanning, planning, approval, and deployment through GitHub Actions.
 
-The repository has evolved beyond basic infrastructure provisioning and now incorporates several modern DevOps practices, including:
+Infrastructure changes are reviewed through pull requests before being promoted through Development and Production deployment workflows.
 
-* Infrastructure as Code using Terraform
-* Modular Terraform architecture
-* Remote Terraform state stored in Amazon S3
-* Environment-specific deployments
-* GitHub Actions CI/CD pipelines
-* Automated infrastructure quality gates
-* Terraform formatting and validation
-* Terraform linting with TFLint
-* Infrastructure security scanning with Checkov
-* Manual approval gates for Production
-* OpenID Connect (OIDC) authentication with AWS
-* IAM role-based deployments using temporary credentials
-* Infrastructure configuration management using Ansible
-* AWS cost governance tagging
+The infrastructure has evolved from a simple single-instance deployment into a more production-inspired architecture using:
+
+* Terraform modules
+* Separate Development and Production Terraform state
+* Environment-specific configuration
+* Amazon VPC networking
+* Public and private subnets
+* Application Load Balancing
+* Auto Scaling Groups
+* EC2 Launch Templates
+* IAM roles and instance profiles
+* GitHub Actions OIDC authentication
+* Temporary AWS credentials
+* Terraform quality gates
+* TFLint
+* Checkov
+* Ansible
+* AWS cost governance
+* Standardized resource tagging
 
 The project is part of my ongoing DevOps homelab and is intended to demonstrate enterprise-inspired infrastructure automation, cloud security, CI/CD workflows, and operational best practices.
+
+The infrastructure is intentionally implemented at homelab scale while following patterns commonly used in larger production environments.
 
 ---
 
 # Architecture
 
+The current application architecture is:
+
 ```text
                          GitHub Repository
                                 │
                                 ▼
-                      Pull Request / Merge
+                       GitHub Actions CI/CD
                                 │
                                 ▼
-                    GitHub Actions CI Pipeline
+                         GitHub OIDC
                                 │
                                 ▼
-                         terraform-pr.yml
-                                │
-        ┌───────────────────────┼───────────────────────┐
-        │                       │                       │
-        ▼                       ▼                       ▼
- Terraform fmt          Terraform validate           TFLint
-        │                       │                       │
-        └───────────────────────┼───────────────────────┘
+                         AWS IAM Role
                                 │
                                 ▼
-                            Checkov
+                            Terraform
                                 │
-                                ▼
-                        Terraform plan
+              ┌─────────────────┼─────────────────┐
+              │                 │                 │
+              ▼                 ▼                 ▼
+           Network          Security            IAM
+              │                 │                 │
+              └─────────────────┼─────────────────┘
                                 │
-                                ▼
-                        Pull Request Review
-                                │
-                           Merge to main
-                                │
-                                ▼
-                     GitHub OIDC Authentication
-                                │
-                                ▼
-                  AWS IAM Role (Development)
-                                │
-                                ▼
-                  Temporary AWS Credentials
-                                │
-                                ▼
-                         Terraform Apply
-                                │
-                                ▼
-                      AWS Infrastructure
-                                │
-                                ▼
-                   Ansible Configuration
+                    ┌───────────┴───────────┐
+                    │                       │
+                    ▼                       ▼
+              Application ALB              ASG
+                    │                       │
+                    ▼                       ▼
+              Target Group          Launch Template
+                                            │
+                                            ▼
+                                    Private EC2 Instances
+                                            │
+                                            ▼
+                                      Application
 ```
 
-Note:
+Traffic flows through the Application Load Balancer rather than directly to individual EC2 instances.
 
 ```text
-Production deployments use a separate IAM role with GitHub Environment approval to simulate a multi-account enterprise deployment strategy.
-```
----
-
-# AWS Network Architecture
-```
-                           Internet
-                              │
-                              │
-                         Internet Gateway
-                              │
-                              ▼
-
-┌─────────────────────────────────────────────────────┐
-│                    Custom VPC                       │
-│                                                     │
-│  CIDR: 10.0.0.0/16                                  │
-│                                                     │
-│                                                     │
-│  ┌───────────────────────┐                          │
-│  │   Public Subnet       │                          │
-│  │   10.0.1.0/24         │                          │
-│  │                       │                          │
-│  │  ┌─────────────────┐  │                          │
-│  │  │ Bastion Host    │  │                          │
-│  │  │ Public IP       │  │                          │
-│  │  │ Elastic IP      │  │                          │
-│  │  │ SSH Access      │  │                          │
-│  │  └─────────────────┘  │                          │
-│  │                       │                          │
-│  └───────────┬───────────┘                          │
-│              │                                      │
-│              │ Traditional SSH                      │
-│              │ (Educational Lab)                    │
-│              ▼                                      │
-│                                                     │
-│  ┌───────────────────────┐                          │
-│  │   Private Subnet      │                          │
-│  │   10.0.2.0/24         │                          │
-│  │                       │                          │
-│  │  ┌─────────────────┐  │                          │
-│  │  │ Internal Server │  │                          │
-│  │  │ No Public IP    │  │                          │
-│  │  │ SSM Managed     │◄─┼───────────────┐          │
-│  │  └─────────────────┘  │               │          │
-│  │                       │               │          │
-│  └───────────────────────┘               │          │
-│                                          │          │
-└──────────────────────────────────────────┼──────────┘
-                                           │
-                                           │
-                                  AWS Systems Manager
-                                           │
-                                           │
-                                    IAM Instance Role
-                                           │
-                                           │
-                                  Temporary Credentials
-
-
-Traffic Flow:
-
-Traditional Administration:
 Internet
    │
+   │ HTTP / HTTPS
    ▼
-SSH Key Authentication
+Application Load Balancer
+   │
+   │ HTTP
+   ▼
+Target Group
    │
    ▼
-Bastion Host
+Auto Scaling Group
    │
-   ▼
-Private Instance
-
-
-Preferred Administration:
-
-Administrator
-   │
-   ▼
-AWS Systems Manager Session Manager
-   │
-   ▼
-IAM Role Authentication
-   │
-   ▼
-Private Instance
-
-
-Outbound AWS Management:
-
-Private Instance
-   │
-   ▼
-SSM Agent
-   │
-   ▼
-AWS Systems Manager Endpoint
+   ├───────────────┐
+   ▼               ▼
+EC2 Instance    EC2 Instance
+Private         Private
+Subnet          Subnet
 ```
 
-The infrastructure follows a segmented network design using public and private subnets. Public-facing resources are isolated from internal workloads, while private instances access external services through a NAT Gateway without requiring public IP addresses.
+The application instances are deployed into private subnets and are not intended to receive direct Internet traffic.
 
-Production environments are intended to follow the same architecture pattern using separate AWS accounts and Terraform state files.
+The ALB provides the public entry point and distributes traffic to healthy instances managed by the Auto Scaling Group.
 
 ---
 
 # Features
 
-- Infrastructure as Code using Terraform
-- Modular Terraform architecture
-- Remote Terraform state stored in Amazon S3
-- Terraform state locking using S3 lockfiles
-- Environment-specific configuration
-- GitHub Actions CI/CD pipelines
-- Automated Terraform formatting
-- Automated Terraform validation
-- Terraform linting with TFLint
-- Infrastructure security scanning with Checkov
-- Automated Terraform planning after quality gates pass
-- Pull request review workflow
-- Manual Production approval gates
-- GitHub OIDC authentication
-- IAM role-based AWS authentication
-- Temporary AWS credentials via AWS STS
-- Infrastructure configuration with Ansible
-- YAML validation
-- Secure secret management
-- Standardized resource tagging using Terraform locals
-- AWS Cost Explorer integration through cost allocation tags
-- AWS Budgets for proactive cost monitoring
-- Centralized common tags applied across infrastructure
-- Separate Development and Production IAM roles
-- Customer-managed IAM policies
-- IAM policy validation using IAM Access Analyzer
-- Modular Terraform architecture
-- Custom AWS VPC architecture
-- Public and private subnet segmentation
-- Private networking using isolated subnets
-- NAT Gateway for private subnet outbound internet access
-- Elastic IP allocation for public networking components
-- Bastion host architecture for secure private instance access
-- Network segmentation between public and private workloads
-- AWS Systems Manager Session Manager integration
-- IAM instance profiles for EC2 authentication
-- Temporary AWS credentials through IAM roles
-- SSH key-based bastion access demonstration
-- Private EC2 administration without public IP addresses
-- Application Load Balancer integration
-- EC2 Launch Templates
-- Auto Scaling Groups
-- Multi-AZ application deployment
-- Target Group integration
-- ELB health checks
-- Automatic EC2 instance replacement
-- Self-healing application infrastructure
+* Infrastructure as Code using Terraform
+* Modular Terraform architecture
+* Dedicated Terraform modules for reusable infrastructure
+* Amazon VPC networking
+* Public and private subnets
+* Application Load Balancer
+* Application Target Group
+* Auto Scaling Group
+* EC2 Launch Template
+* Private application instances
+* Remote Terraform state stored in Amazon S3
+* Separate Development and Production Terraform state
+* Terraform state locking using S3 lockfiles
+* Environment-specific Terraform configuration
+* GitHub Actions CI/CD pipelines
+* Automated Terraform formatting
+* Automated Terraform validation
+* Terraform linting with TFLint
+* Infrastructure security scanning with Checkov
+* Automated Terraform planning
+* Pull request review workflow
+* Manual Production approval gates
+* GitHub OpenID Connect authentication
+* IAM role-based AWS authentication
+* Temporary AWS credentials via AWS STS
+* EC2 IAM instance profiles
+* IMDSv2 enforcement
+* Encrypted EBS volumes
+* Ansible configuration management
+* YAML validation
+* Secure secret management
+* Standardized AWS resource tagging
+* AWS Cost Allocation Tags
+* AWS Budgets
+* Cloud cost governance
+* Infrastructure security hardening
 
 ---
 
@@ -283,15 +202,13 @@ Production environments are intended to follow the same architecture pattern usi
 
 ## Cloud
 
-- AWS EC2
-- AWS IAM
-- Amazon S3
-- AWS Systems Manager Session Manager
-- EC2 IAM Role Authentication
-- IAM Instance Profiles
-- Temporary Credential Management
-- Secure EC2 Access Architecture
-- SSH Bastion Host Design
+* AWS VPC
+* AWS EC2
+* AWS Application Load Balancer
+* AWS Auto Scaling
+* AWS IAM
+* Amazon S3
+* AWS STS
 
 ## Infrastructure as Code
 
@@ -325,33 +242,67 @@ Production environments are intended to follow the same architecture pattern usi
 # Repository Structure
 
 ```text
-terraform-ci-demo
-├── ansible
+terraform-ci-demo/
+│
+├── ansible/
 │   ├── configure.yml
 │   └── inventory.ini
+│
 ├── README.md
-└── terraform
-    ├── backend
+│
+└── terraform/
+    │
+    ├── backend/
     │   ├── dev.hcl
     │   └── prod.hcl
-    ├── backend.tf
-    ├── environments
+    │
+    ├── environments/
     │   ├── dev.tfvars
     │   └── prod.tfvars
-    ├── inventory.tpl
-    ├── main.tf
-    ├── modules
-    │   └── ec2
+    │
+    ├── modules/
+    │   ├── alb/
+    │   │   ├── main.tf
+    │   │   ├── outputs.tf
+    │   │   ├── README.md
+    │   │   └── variables.tf
+    │   │
+    │   ├── asg/
+    │   │   ├── main.tf
+    │   │   ├── outputs.tf
+    │   │   ├── README.md
+    │   │   └── variables.tf
+    │   │
+    │   ├── iam/
+    │   │   ├── main.tf
+    │   │   ├── outputs.tf
+    │   │   ├── README.md
+    │   │   └── variables.tf
+    │   │
+    │   ├── network/
+    │   │   ├── main.tf
+    │   │   ├── outputs.tf
+    │   │   ├── README.md
+    │   │   └── variables.tf
+    │   │
+    │   └── security_groups/
     │       ├── main.tf
     │       ├── outputs.tf
     │       ├── README.md
     │       └── variables.tf
-    ├── locals.tf
+    │
+    ├── backend.tf
+    ├── main.tf
     ├── outputs.tf
+    ├── variables.tf
     ├── terraform.tfvars
-    ├── userdata.sh
-    └── variables.tf
+    ├── inventory.tpl
+    └── userdata.sh
 ```
+
+The repository no longer uses a standalone EC2 Terraform module for application deployment.
+
+Application compute is managed through the Auto Scaling Group and Launch Template.
 
 ---
 
@@ -361,225 +312,156 @@ The project originally authenticated GitHub Actions using long-lived IAM user ac
 
 As part of the security hardening process, the pipeline was migrated to **GitHub OpenID Connect (OIDC)** authentication.
 
-Current authentication flow:
+The current authentication flow is:
 
 ```text
 GitHub Actions
-        │
-        ▼
+       │
+       ▼
 OIDC Identity Token
-        │
-        ▼
+       │
+       ▼
 AWS IAM Identity Provider
-        │
-        ▼
-Development / Production IAM Role
-        │
-        ▼
+       │
+       ▼
+Deployment IAM Role
+       │
+       ▼
 AWS STS
-        │
-        ▼
+       │
+       ▼
 Temporary AWS Credentials
-        │
-        ▼
+       │
+       ▼
 Terraform
 ```
 
-This approach eliminates the need to store AWS access keys within GitHub and aligns the project with current AWS security best practices.
+This eliminates the need to store long-lived AWS access keys within GitHub.
 
 Benefits include:
 
 * No long-lived AWS credentials
-* Automatic credential rotation
+* Temporary credentials issued by AWS STS
+* Automatic credential expiration
 * Improved auditability
 * Reduced secret management
-* Principle of least privilege
+* Better separation of environments
+* Support for least-privilege IAM policies
 
 ---
 
-# EC2 Access and Session Management
-
-## SSH Key Authentication (Original Design)
-
-The original infrastructure design used SSH key-based authentication to access EC2 instances.
-
-SSH keys are commonly used because:
-
-* They provide stronger authentication than passwords
-* Private keys remain with the administrator
-* Public keys can be securely distributed to servers
-* They are widely supported across Linux environments
-
-The initial bastion host architecture followed a traditional cloud administration model:
-
-```text
-Administrator
-      │
-      ▼
-SSH Private Key
-      │
-      ▼
-Public Bastion Host
-      │
-      ▼
-Private EC2 Instance
-```
-
-## AWS Systems Manager Session Manager (Current Approach)
-
-The project now uses AWS Systems Manager Session Manager as the preferred method for managing private EC2 instances.
-
-Session Manager removes the requirement for inbound SSH access and provides secure shell access through AWS IAM authentication.
-
-The access flow is:
-```text
-Administrator
-      │
-      ▼
-AWS Console / AWS CLI
-      │
-      ▼
-Systems Manager Session Manager
-      │
-      ▼
-SSM Agent on EC2 Instance
-      │
-      ▼
-Private EC2 Instance
-```
-
-Benefits of Session Manager include:
-
-* No SSH keys required
-* No public IP address required
-* No inbound port 22 security group rules required
-* IAM-based access control
-* Centralized session logging capability
-* Integration with AWS CloudTrail
-* Temporary authentication instead of permanent credentials
-
----
-
-## IAM Roles and Temporary EC2 Credentials
-
-EC2 instances use IAM roles to securely authenticate with AWS services.
-
-Instead of storing AWS access keys directly on an instance, an IAM role is attached through an instance profile.
-
-The authentication flow is:
-
-```text
-EC2 Instance
-      │
-      ▼
-IAM Instance Profile
-      │
-      ▼
-IAM Role
-      │
-      ▼
-AWS STS Temporary Credentials
-      │
-      ▼
-AWS Systems Manager
-```
-
-When the EC2 instance starts, AWS automatically provides temporary credentials through the instance metadata service.
-
-These credentials are:
-
-* Automatically rotated
-* Short-lived
-* Scoped by IAM permissions
-* Not stored in configuration files
-
-The private internal server uses an IAM role with permissions required by Systems Manager, allowing it to register as a managed instance without requiring SSH access.
-
-This follows the AWS recommended security model of using IAM roles and temporary credentials instead of long-lived access keys.
-
----
 # Security Design Decisions
 
-Several security-focused design decisions have been incorporated throughout the project.
+Security is incorporated throughout the infrastructure and deployment architecture.
 
-## GitHub OIDC Authentication
+## GitHub OIDC
 
-GitHub Actions authenticates to AWS using OpenID Connect (OIDC) and temporary IAM role credentials instead of long-lived access keys.
+GitHub Actions authenticates to AWS using OpenID Connect rather than long-lived IAM user access keys.
 
-## IAM Roles
-
-Separate IAM roles are used for Development and Production deployments, simulating the authentication model commonly used in multi-account AWS environments.
-
-Customer-managed IAM policies are used instead of broad AWS managed policies.
-
-Least privilege is applied using a methodical approach of adding minimal permissions and expanding permissions only when required.
-
-The policy will continue evolving as additional AWS services are introduced.
-
-### IAM Access Analyzer
-
-IAM Access Analyzer is used to validate customer-managed IAM policies and identify opportunities to further reduce permissions.
-
-Rather than granting broad administrative access, IAM policies are iteratively refined based on deployment requirements and Access Analyzer recommendations. This approach helps ensure the GitHub Actions deployment roles maintain only the permissions necessary to provision the infrastructure.
-
-This mirrors how IAM policies are commonly developed and maintained within enterprise AWS environments.
-
-## Remote State
-
-Terraform state is stored remotely in Amazon S3 using the modern S3 lockfile mechanism.
-
-## Cloud Cost Governance
-
-Cloud resources should be easy to identify, manage, and attribute to the correct environment or project. To support this, all infrastructure created by Terraform follows a standardized tagging strategy.
-
-A centralized set of common tags is defined using Terraform locals and automatically applied across resources using the merge() function. This reduces duplication while ensuring consistent metadata is attached to every resource.
-
-| Tag | Purpose |
-|------|---------|
-| Name | Human-readable resource name |
-| Environment | Development or Production environment |
-| Project | Identifies the Terraform CI/CD Demo project |
-| Owner | Resource owner |
-| ManagedBy | Indicates Terraform manages the resource |
-| Repository | Source GitHub repository |
-| CostCenter | Used for cost allocation |
-| AutoDeployed | Indicates infrastructure was deployed through automation |
-
-These tags improve:
-
-- Resource ownership
-- Cost reporting
-- Inventory management
-- Automation
-- Operational consistency
-
-AWS Cost Allocation Tags are enabled so costs can be grouped by project and environment within AWS Cost Explorer.
-
-An AWS Budget is also configured to notify when monthly spending approaches the defined threshold, encouraging proactive cloud cost management.
-
-## Secrets
-
-Long-lived AWS credentials are no longer required by the CI/CD pipeline. Repository secrets are limited to non-sensitive configuration where appropriate.
-
-## Deployment Promotion
-
-Infrastructure changes are reviewed through pull requests before deployment. Production deployments require manual approval through GitHub Environments.
+This provides short-lived credentials for CI/CD operations.
 
 ---
 
-# Security Highlights
+## Separate Deployment Roles
 
-The project incorporates several modern AWS security practices:
+Development and Production deployments use separate IAM roles.
 
-- GitHub OpenID Connect (OIDC) authentication
-- Temporary AWS STS credentials
-- Separate Development and Production IAM roles
-- Customer-managed IAM policies
-- Principle of least privilege
-- IAM Access Analyzer policy validation
-- Protected Production deployments through GitHub Environments
-- Remote Terraform state stored securely in Amazon S3
-- No long-lived AWS credentials stored in the repository
+The homelab uses separate IAM identities to simulate an architecture that would commonly use separate AWS accounts in a larger organization.
+
+Conceptually:
+
+```text
+Enterprise Model
+
+Development AWS Account
+        │
+        └── Development IAM Role
+
+Production AWS Account
+        │
+        └── Production IAM Role
+```
+
+The homelab simplifies this by implementing the separation within the same AWS account.
+
+This allows the security and operational concepts of account separation to be demonstrated without the additional complexity and cost of maintaining multiple AWS accounts.
+
+---
+
+## EC2 IAM Role
+
+The EC2 instances use a dedicated IAM role through an instance profile.
+
+The EC2 role is separate from the GitHub Actions deployment role.
+
+```text
+GitHub Actions
+      │
+      ▼
+Deployment IAM Role
+      │
+      ▼
+Terraform
+
+EC2
+ │
+ ▼
+EC2 IAM Role
+ │
+ ▼
+AWS APIs required by application
+```
+
+The EC2 role follows the principle of least privilege and should only contain permissions required by the application or configuration-management process.
+
+---
+
+## IMDSv2
+
+EC2 instances require Instance Metadata Service Version 2.
+
+The Launch Template configures:
+
+```hcl
+metadata_options {
+  http_endpoint = "enabled"
+  http_tokens   = "required"
+}
+```
+
+Requiring IMDSv2 provides an additional layer of protection against credential-access techniques targeting the EC2 metadata service.
+
+---
+
+## Encrypted Storage
+
+EC2 root volumes are configured to use encrypted EBS storage.
+
+This protects data stored on the instance volumes and aligns with common cloud security practices.
+
+---
+
+## Network Segmentation
+
+The application architecture separates public and private resources.
+
+```text
+Internet
+   │
+   ▼
+Public Subnets
+   │
+   ▼
+Application Load Balancer
+   │
+   ▼
+Private Subnets
+   │
+   ▼
+Application EC2 Instances
+```
+
+The application instances are not directly exposed to the Internet.
 
 ---
 
@@ -587,46 +469,238 @@ The project incorporates several modern AWS security practices:
 
 The Terraform configuration provisions AWS infrastructure including:
 
-## Networking
-
-* Custom Amazon VPC
-* Public subnet
-* Private subnet
+* VPC networking
+* Public subnets
+* Private subnets
 * Internet Gateway
-* NAT Gateway
-* Elastic IP allocation
-* Route tables
-* Route table associations
-
-## Compute
-
-- EC2 instances
-- EC2 Launch Templates
-- Auto Scaling Groups
-- Multi-AZ application deployment
-- Application Load Balancer
-- Target Groups
-- ELB health checks
-- Automatic instance replacement
-- Bastion host
-- Security Groups
-
-## State Management
-
+* Routing
+* Security Groups
+* Application Load Balancer
+* Target Group
+* Auto Scaling Group
+* EC2 Launch Template
+* EC2 IAM instance profile
 * Remote Terraform state stored in Amazon S3
-* Terraform state locking using the S3 lockfile mechanism
+* Terraform state locking using S3 lockfiles
 
-Infrastructure configuration remains separate from deployment configuration through the use of environment-specific Terraform variable files.
+Infrastructure configuration is separated from environment-specific deployment configuration through dedicated `.tfvars` files.
 
 ---
 
 # Terraform Modules
 
-The project uses Terraform modules to improve code organization and reusability.
+The project uses reusable Terraform modules to improve organization, maintainability, and separation of responsibilities.
 
-The EC2 instance configuration has been refactored into a reusable child module while the root module remains responsible for provider configuration, networking resources, environment-specific configuration, and module orchestration.
+## Network Module
 
-This modular design reduces duplication, improves readability, and makes the infrastructure easier to extend as additional AWS resources are introduced.
+Responsible for networking infrastructure including:
+
+* VPC
+* Public subnets
+* Private subnets
+* Availability Zones
+* Internet Gateway
+* Route configuration
+
+The network module provides the subnet IDs and networking information consumed by other modules.
+
+---
+
+## Security Groups Module
+
+Security groups are managed through a dedicated module rather than being scattered throughout the root Terraform configuration.
+
+The module provides separate security boundaries for components such as:
+
+* Application Load Balancer
+* Application instances
+
+The intended traffic model is:
+
+```text
+Internet
+   │
+   ▼
+ALB Security Group
+   │
+   ▼
+Application Security Group
+   │
+   ▼
+Private EC2
+```
+
+This prevents application instances from accepting arbitrary Internet traffic.
+
+---
+
+## IAM Module
+
+The IAM module manages IAM resources required by the infrastructure.
+
+This includes the EC2 application role and associated instance profile.
+
+The GitHub OIDC deployment roles are kept conceptually separate from the EC2 runtime role because they serve different purposes.
+
+---
+
+## ALB Module
+
+The ALB module manages:
+
+* Application Load Balancer
+* Target Group
+* Listener
+* Load balancer security-group association
+
+The ALB provides the public application endpoint and distributes traffic to healthy instances in the Auto Scaling Group.
+
+---
+
+## ASG Module
+
+The ASG module manages application compute.
+
+It includes:
+
+* Launch Template
+* Auto Scaling Group
+* Instance configuration
+* IAM instance profile association
+* Application security group association
+* Private subnet placement
+* Target Group association
+* Health checks
+* Instance tag propagation
+
+The ASG is now the primary owner of application compute.
+
+Individual EC2 instances are intentionally not managed as standalone Terraform resources.
+
+This allows instances to be replaced automatically without requiring Terraform configuration changes.
+
+---
+
+# Network Architecture
+
+The application uses a VPC containing separate public and private subnets.
+
+```text
+                         Internet
+                            │
+                            ▼
+                     Internet Gateway
+                            │
+                 ┌──────────┴──────────┐
+                 │                     │
+                 ▼                     ▼
+            Public Subnet A       Public Subnet B
+                 │                     │
+                 └──────────┬──────────┘
+                            │
+                            ▼
+                  Application Load Balancer
+                            │
+                            ▼
+                    Target Group
+                            │
+                 ┌──────────┴──────────┐
+                 │                     │
+                 ▼                     ▼
+            Private Subnet A       Private Subnet B
+                 │                     │
+                 ▼                     ▼
+              EC2 Instance          EC2 Instance
+```
+
+The ALB requires subnets in multiple Availability Zones.
+
+The application Auto Scaling Group similarly uses multiple private subnets to improve availability and allow instances to be distributed across Availability Zones.
+
+---
+
+# Security Groups
+
+Security groups are designed around application traffic rather than individual instances.
+
+## ALB Security Group
+
+The ALB security group permits the required public application traffic.
+
+Typical rules include:
+
+```text
+Internet
+   │
+   ├── HTTP
+   └── HTTPS
+        │
+        ▼
+       ALB
+```
+
+---
+
+## Application Security Group
+
+The application security group does not directly permit arbitrary Internet traffic.
+
+Instead, application traffic is accepted from the ALB security group.
+
+```text
+ALB Security Group
+        │
+        ▼
+Application Security Group
+        │
+        ▼
+       EC2
+```
+
+This provides a clear network security boundary between the public load balancer and private application infrastructure.
+
+---
+
+# Application Compute
+
+Application compute is managed by an Auto Scaling Group rather than individual EC2 resources.
+
+```text
+                  Auto Scaling Group
+                         │
+             ┌───────────┴───────────┐
+             ▼                       ▼
+       Launch Template        Desired Capacity
+             │
+             ▼
+        Private EC2
+```
+
+The Launch Template defines the configuration used when instances are created.
+
+This includes:
+
+* AMI
+* Instance type
+* Security groups
+* IAM instance profile
+* User data
+* EBS configuration
+* Instance metadata configuration
+
+The Auto Scaling Group manages:
+
+* Minimum capacity
+* Desired capacity
+* Maximum capacity
+* Private subnet placement
+* Target Group association
+* ELB health checks
+* Instance replacement
+
+Using an ASG makes individual instances disposable.
+
+If an instance becomes unhealthy, the Auto Scaling Group can terminate and replace it without requiring a Terraform configuration change.
 
 ---
 
@@ -636,44 +710,36 @@ This modular design reduces duplication, improves readability, and makes the inf
 
 Runs during pull requests and validates infrastructure changes before deployment.
 
-This workflow acts as the primary infrastructure quality gate before changes are approved and merged.
-
 Stages include:
 
-* Terraform formatting (`terraform fmt`)
-* Terraform validation (`terraform validate`)
-* Terraform linting (`TFLint`)
-* Infrastructure security scanning (`Checkov`)
-* Terraform planning (`terraform plan`)
+* Terraform formatting
+* Terraform validation
+* TFLint
+* Checkov
+* Terraform planning
 
-Terraform planning only occurs after all automated quality gates successfully pass.
-
-This workflow allows infrastructure changes to be reviewed before deployment and prevents invalid or insecure configurations from progressing through the pipeline.
+Terraform planning occurs only after the automated quality gates successfully pass.
 
 ---
 
 ## terraform-apply.yml
 
-Runs after code has been merged into the `main` branch and deployment has been approved through the configured GitHub Environment.
+Runs after changes are merged into the appropriate deployment branch and environment approval requirements are satisfied.
 
 Stages include:
 
 * Configure AWS credentials through GitHub OIDC
 * Initialize Terraform
-* Terraform Apply
+* Select the appropriate backend
+* Apply the environment-specific Terraform configuration
 
-The workflow uses GitHub Environment protection rules to require manual approval before infrastructure changes are deployed, adding an additional safeguard for production infrastructure.
+Production deployment requires manual approval through GitHub Environment protection rules.
 
 ---
 
 ## ansible.yml
 
 Validates Ansible playbooks to catch syntax errors before configuration changes are deployed.
-
-Stages include:
-
-* Ansible syntax validation
-* Playbook validation
 
 ---
 
@@ -685,25 +751,52 @@ Runs Yamllint against repository YAML files to maintain consistent formatting an
 
 ## secrets-test.yml
 
-Verifies that GitHub Actions can successfully authenticate with AWS using repository secrets.
+This workflow was used during the transition from IAM user access keys to GitHub OIDC authentication.
 
-This workflow was used during the migration from IAM user access keys to GitHub OIDC authentication.
+Long-lived AWS access keys are no longer required for normal CI/CD authentication.
 
 ---
 
 # Quality Assurance
 
-Before infrastructure changes can be deployed, Terraform code must pass automated quality gates to ensure consistency, validity, security, and maintainability.
+Infrastructure changes must pass automated quality gates before deployment.
 
-The CI/CD pipeline performs multiple validation stages before a Terraform deployment plan is generated.
+The pipeline performs:
 
-Infrastructure changes must successfully pass all automated quality checks before a deployment plan is created.
+```text
+Terraform Code Change
+        │
+        ▼
+terraform fmt
+        │
+        ▼
+terraform validate
+        │
+        ▼
+TFLint
+        │
+        ▼
+Checkov
+        │
+        ▼
+terraform plan
+        │
+        ▼
+Pull Request Review
+        │
+        ▼
+Merge
+        │
+        ▼
+Deployment Approval
+        │
+        ▼
+terraform apply
+```
 
 ---
 
 ## Terraform Format
-
-Terraform formatting ensures that all Terraform configuration files follow standard HashiCorp formatting conventions.
 
 The pipeline runs:
 
@@ -711,20 +804,11 @@ The pipeline runs:
 terraform fmt -check -recursive
 ```
 
-This verifies that Terraform files are consistently formatted before changes are reviewed.
-
-Benefits:
-
-* Maintains consistent code style
-* Improves readability
-* Reduces unnecessary formatting changes in pull requests
-* Ensures Terraform follows community standards
+This ensures Terraform files follow standard formatting conventions.
 
 ---
 
 ## Terraform Validate
-
-Terraform validation checks whether the Terraform configuration is syntactically correct and internally consistent.
 
 The pipeline runs:
 
@@ -733,102 +817,37 @@ terraform init
 terraform validate
 ```
 
-Validation verifies:
-
-* Terraform configuration syntax
-* Provider configuration
-* Resource definitions
-* Module references
-* Variable usage
-
-This prevents invalid Terraform configurations from progressing further in the deployment pipeline.
+Validation checks Terraform configuration syntax, provider configuration, module references, and resource definitions.
 
 ---
 
 ## TFLint
 
-TFLint performs static analysis on Terraform code to identify potential issues beyond basic syntax validation.
+TFLint performs static analysis against Terraform code.
 
-TFLint checks for:
+It helps identify:
 
-* Terraform best practices
 * Provider-specific issues
 * Deprecated configurations
-* AWS-specific configuration recommendations
 * Potential configuration mistakes
-
-Example:
-
-```bash
-tflint
-```
-
-TFLint helps identify problems early before infrastructure changes are deployed.
+* Terraform best-practice violations
 
 ---
 
 ## Checkov
 
-Checkov performs Infrastructure as Code security scanning against Terraform configurations.
-
-The pipeline runs:
-
-```bash
-checkov -d .
-```
-
-Checkov evaluates infrastructure against security policies and cloud security best practices.
+Checkov performs Infrastructure as Code security scanning.
 
 Examples of checks include:
 
-* Publicly accessible resources
-* Missing encryption settings
-* Overly permissive security groups
-* Insecure IAM configurations
-* AWS security best practices
+* Publicly exposed resources
+* Insecure security groups
+* Missing encryption
+* IAM configuration issues
+* EC2 security settings
+* AWS best-practice violations
 
-Security exceptions are documented explicitly when required for intentional lab or demonstration configurations.
-
----
-
-## Deployment Quality Gate
-
-All automated quality checks must successfully complete before a Terraform deployment plan is generated.
-
-The workflow follows this sequence:
-
-```text
-Terraform Code Change
-          │
-          ▼
-terraform fmt
-          │
-          ▼
-terraform validate
-          │
-          ▼
-TFLint
-          │
-          ▼
-Checkov
-          │
-          ▼
-terraform plan
-          │
-          ▼
-Pull Request Review
-          │
-          ▼
-Merge into main
-          │
-          ▼
-Deployment Approval
-          │
-          ▼
-terraform apply
-```
-
-This quality gate approach ensures that infrastructure changes are reviewed, validated, and security-checked before they are allowed to modify cloud resources.
+Security findings that are intentional for the homelab are documented rather than blindly suppressed.
 
 ---
 
@@ -836,350 +855,48 @@ This quality gate approach ensures that infrastructure changes are reviewed, val
 
 ```text
 Developer
-     │
-     ▼
+    │
+    ▼
 Feature Branch
-     │
-     ▼
+    │
+    ▼
 Pull Request
-     │
-     ▼
+    │
+    ▼
 terraform-pr.yml
-
- • Terraform fmt
- • Terraform validate
- • TFLint
- • Checkov
- • Terraform plan
-
-     │
-     ▼
+    │
+    ├── terraform fmt
+    ├── terraform validate
+    ├── TFLint
+    ├── Checkov
+    └── terraform plan
+    │
+    ▼
 Code Review
-     │
-     ▼
-Merge into main
-     │
-     ▼
+    │
+    ▼
+Merge
+    │
+    ▼
 terraform-apply.yml
-
- • Configure AWS OIDC authentication
- • Terraform init
- • Manual approval
-
-     │
-     ▼
+    │
+    ▼
+GitHub OIDC
+    │
+    ▼
+AWS IAM Role
+    │
+    ▼
+Temporary AWS Credentials
+    │
+    ▼
 Terraform Apply
-
-     │
-     ▼
-AWS
-
-├── EC2
-├── Security Groups
-├── S3 Remote State
-└── Cost Governance Tags
-
-        │
-        ▼
-Ansible Configuration
-
+    │
+    ▼
+AWS Infrastructure
 ```
 
----
-
-# Auto Scaling
-
-The infrastructure uses an AWS Auto Scaling architecture to provide improved availability, fault tolerance, and automatic instance replacement.
-
-The application tier is deployed using an **EC2 Launch Template** and an **Auto Scaling Group (ASG)**. The ASG integrates with an **Application Load Balancer (ALB)** through an AWS Target Group.
-
-This architecture allows the environment to automatically maintain the desired number of healthy application instances and replace instances when they become unhealthy.
-
-## Auto Scaling Architecture
-
-```text
-                              Internet
-                                  │
-                                  ▼
-                         Application Load
-                            Balancer (ALB)
-                                  │
-                                  ▼
-                           Target Group
-                                  │
-                                  ▼
-                     Auto Scaling Group (ASG)
-                         Desired Capacity
-                                  │
-                    ┌─────────────┴─────────────┐
-                    │                           │
-                    ▼                           ▼
-              EC2 Instance                 EC2 Instance
-              Availability Zone A           Availability Zone B
-                    │                           │
-                    └─────────────┬─────────────┘
-                                  │
-                                  ▼
-                         Launch Template
-```
-
-The Launch Template defines how new application instances are created, while the Auto Scaling Group controls how many instances should be running and where they are deployed.
-
----
-
-## Launch Templates
-
-The Auto Scaling Group uses an AWS EC2 Launch Template to define the configuration of application instances.
-
-The Launch Template contains configuration such as:
-
-* AMI
-* Instance type
-* IAM instance profile
-* Security groups
-* User data
-* SSH key configuration where required
-* Instance metadata configuration
-
-When the Auto Scaling Group needs to create a new instance, it uses the Launch Template as the blueprint.
-
-This provides a consistent and repeatable method of creating application servers.
-
-Instead of manually configuring individual EC2 instances, every replacement instance is created from the same infrastructure definition.
-
-The resulting flow is:
-
-```text
-Launch Template
-       │
-       ▼
-Auto Scaling Group
-       │
-       ▼
-New EC2 Instance
-       │
-       ▼
-User Data / Bootstrap
-       │
-       ▼
-Application Server
-```
-
----
-
-## Auto Scaling Groups
-
-The Auto Scaling Group manages the application's EC2 instances.
-
-The ASG is responsible for maintaining the desired number of application instances and automatically launching or terminating instances as required.
-
-The group defines:
-
-* Minimum capacity
-* Desired capacity
-* Maximum capacity
-* VPC subnets
-* Launch Template
-* Target Group integration
-* Health check configuration
-
-For example:
-
-```text
-Minimum Capacity: 2
-Desired Capacity: 2
-Maximum Capacity: 4
-```
-
-This configuration ensures that the application maintains at least two instances while allowing additional capacity to be introduced as the environment grows.
-
-The ASG also prevents the environment from depending on a single EC2 instance.
-
----
-
-## Multi-AZ Deployment
-
-The Auto Scaling Group is configured to use multiple Availability Zones.
-
-For example:
-
-```text
-AWS Region
-│
-├── Availability Zone A
-│      │
-│      └── EC2 Instance
-│
-└── Availability Zone B
-       │
-       └── EC2 Instance
-```
-
-Deploying instances across multiple Availability Zones improves application availability because the application does not depend on a single Availability Zone.
-
-If an individual instance becomes unavailable, the remaining instance can continue serving traffic while the Auto Scaling Group launches a replacement.
-
-Multi-AZ deployment also provides protection against an Availability Zone-level failure.
-
----
-
-## Target Group Integration
-
-The Auto Scaling Group is integrated with an AWS Target Group associated with the Application Load Balancer.
-
-The traffic flow is:
-
-```text
-Client
-  │
-  ▼
-ALB
-  │
-  ▼
-Target Group
-  │
-  ├── EC2 Instance
-  │
-  └── EC2 Instance
-```
-
-When the Auto Scaling Group launches a new instance, the instance is automatically registered with the Target Group.
-
-When an instance is terminated or removed from the Auto Scaling Group, it is removed from the Target Group.
-
-This allows the load balancer to dynamically track the current application fleet without requiring manual registration of EC2 instances.
-
----
-
-## ELB Health Checks
-
-The Application Load Balancer uses health checks to determine whether application instances are capable of receiving traffic.
-
-For example, the Target Group can perform an HTTP health check against:
-
-```text
-/
-```
-
-or another application health endpoint.
-
-The health check verifies that the application is responding successfully.
-
-The traffic flow is:
-
-```text
-ALB
- │
- ▼
-Target Group
- │
- ▼
-Health Check
- │
- ├── Healthy
- │      │
- │      └── Receives Application Traffic
- │
- └── Unhealthy
-        │
-        └── Removed from Traffic
-```
-
-An unhealthy instance is no longer considered a valid target by the load balancer.
-
-The Auto Scaling Group can then identify the unhealthy instance and replace it.
-
-This creates an automated recovery mechanism without requiring an administrator to manually detect and replace failed instances.
-
----
-
-## Automatic Instance Replacement
-
-One of the primary benefits of the Auto Scaling architecture is automatic instance replacement.
-
-If an EC2 instance becomes unhealthy, the Auto Scaling Group can terminate the unhealthy instance and launch a replacement using the Launch Template.
-
-The recovery process is:
-
-```text
-EC2 Instance
-      │
-      ▼
-ALB Health Check
-      │
-      ▼
-Instance Unhealthy
-      │
-      ▼
-Removed From Target Group
-      │
-      ▼
-Auto Scaling Group
-      │
-      ▼
-Unhealthy Instance Terminated
-      │
-      ▼
-Launch Template
-      │
-      ▼
-Replacement EC2 Instance
-      │
-      ▼
-Target Group
-      │
-      ▼
-Health Check
-      │
-      ▼
-Healthy
-      │
-      ▼
-Receives Traffic
-```
-
-This provides self-healing behavior for the application tier.
-
-The infrastructure therefore does not rely on an administrator manually replacing failed EC2 instances.
-
----
-
-## Application Availability
-
-The combined ALB, Target Group, and Auto Scaling architecture provides multiple layers of availability:
-
-```text
-                    Application Load Balancer
-                              │
-                              ▼
-                         Target Group
-                              │
-                 ┌────────────┴────────────┐
-                 │                         │
-                 ▼                         ▼
-          EC2 Instance A             EC2 Instance B
-          Availability Zone A        Availability Zone B
-                 │                         │
-                 └────────────┬────────────┘
-                              │
-                       Auto Scaling Group
-                              │
-                              ▼
-                       Launch Template
-```
-
-This architecture provides:
-
-* Load balancing
-* Multi-AZ deployment
-* Health monitoring
-* Automatic instance replacement
-* Consistent instance configuration
-* Improved application availability
-* Reduced dependence on individual EC2 instances
-
-The architecture represents a significant progression from manually managed EC2 infrastructure toward a more resilient and self-healing cloud architecture.
-
+Production deployment additionally requires GitHub Environment approval before Terraform Apply is permitted.
 
 ---
 
@@ -1192,233 +909,321 @@ The architecture represents a significant progression from manually managed EC2 
 * Git
 * GitHub repository
 * GitHub Actions enabled
-* AWS IAM permissions for infrastructure deployment
+* Appropriate AWS IAM roles
+* SSH client
+* Ansible
 
 ---
 
 # Repository Configuration
 
-Sensitive information is **never stored within the repository**.
+Sensitive credentials are not stored in the repository.
 
-GitHub Actions authentication uses GitHub OIDC with AWS IAM roles rather than long-lived access keys.
+GitHub Actions authenticates to AWS using GitHub OIDC.
 
-Environment-specific configuration is stored in Terraform variable files such as:
+Environment-specific Terraform configuration is stored separately:
 
-* `dev.tfvars`
-* `prod.tfvars`
+```text
+terraform/
+└── environments/
+    ├── dev.tfvars
+    └── prod.tfvars
+```
 
-This allows the same Terraform codebase to deploy multiple environments while keeping infrastructure code separate from deployment configuration.
+Terraform state is also separated between environments.
+
+```text
+Development
+    │
+    ▼
+S3 Development State
+    │
+    └── dev infrastructure
+
+Production
+    │
+    ▼
+S3 Production State
+    │
+    └── prod infrastructure
+```
+
+This prevents a Production deployment from reusing or modifying Development Terraform state.
+
+---
+
+# Environment Separation
+
+Development and Production use the same Terraform codebase but separate environment configuration and Terraform state.
+
+Conceptually:
+
+```text
+                    Terraform Code
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+              ▼                       ▼
+         Development             Production
+              │                       │
+         dev.tfvars              prod.tfvars
+              │                       │
+              ▼                       ▼
+        dev backend              prod backend
+              │                       │
+              ▼                       ▼
+       Dev Infrastructure       Prod Infrastructure
+```
+
+The homelab uses separate IAM roles to simulate the isolation that would commonly be achieved using separate AWS accounts.
+
+A larger enterprise implementation could use:
+
+```text
+AWS Organization
+       │
+       ├── Development Account
+       │       └── Development IAM Role
+       │
+       └── Production Account
+               └── Production IAM Role
+```
+
+The homelab intentionally keeps these concepts within a simpler account structure to reduce cost and administrative overhead while still demonstrating the underlying security and deployment model.
 
 ---
 
 # Design Decisions
 
-## Separate Terraform Plan and Apply
+## Separate Plan and Apply
 
 Infrastructure validation and deployment are intentionally separated.
 
-Pull requests execute automated quality checks and generate Terraform execution plans, allowing infrastructure changes to be reviewed before deployment.
+Pull requests execute automated quality checks and generate Terraform plans.
 
-Only after approval and merging into the `main` branch does the deployment workflow execute.
+Deployment occurs only after the changes have been reviewed and merged.
 
-This mirrors common enterprise Infrastructure as Code workflows and reduces deployment risk.
+Production additionally requires environment approval.
 
 ---
 
 ## Infrastructure Quality Gates
 
-Infrastructure changes must pass automated validation and security checks before a deployment plan is generated.
+Terraform formatting, validation, linting, and security scanning must pass before a deployment plan is generated.
 
-The CI/CD pipeline validates:
-
-* Terraform formatting
-* Terraform configuration validity
-* Terraform best practices
-* Infrastructure security policies
-
-This ensures infrastructure changes meet baseline quality and security standards before they can be reviewed or deployed.
+This creates a consistent baseline for infrastructure quality.
 
 ---
 
 ## GitHub Environment Protection
 
-Production deployments are protected using GitHub Environments.
+Production deployments use GitHub Environment protection rules.
 
-Infrastructure changes require manual approval before Terraform Apply is allowed to execute.
-
-Introducing deployment approval gates helps reduce operational risk while maintaining the benefits of automation.
+This creates a manual approval checkpoint between automated CI and Production infrastructure changes.
 
 ---
 
 ## Remote Terraform State
 
-Terraform stores its remote state within Amazon S3.
+Terraform state is stored remotely in Amazon S3.
 
-Using remote state allows infrastructure to be managed consistently across multiple environments and CI runners while preventing state drift.
+Development and Production use separate state configurations.
 
-The project uses Terraform's modern S3 lockfile mechanism instead of the legacy DynamoDB locking approach.
+The project uses the modern S3 lockfile mechanism rather than the legacy DynamoDB locking approach.
 
 ---
 
 ## Terraform Modules
 
-Reusable Terraform modules improve maintainability by separating reusable infrastructure from deployment logic.
+Infrastructure responsibilities are divided into reusable Terraform modules.
 
-The root module coordinates infrastructure while child modules provision specific resources such as EC2 instances.
+Current modules include:
 
-This approach reduces duplication and simplifies future expansion.
+* Network
+* Security Groups
+* IAM
+* ALB
+* ASG
 
----
-
-## Environment Separation
-
-The project uses a single Terraform codebase for both Development and Production environments.
-
-Environment-specific configuration is supplied using dedicated `.tfvars` files rather than maintaining separate Terraform projects.
-
-This minimizes duplication while ensuring infrastructure changes remain consistent across environments.
+This structure allows individual infrastructure components to evolve without creating a single monolithic Terraform configuration.
 
 ---
 
-## Infrastructure Governance
+## Auto Scaling Instead of Standalone EC2
 
-Infrastructure should not only be automated—it should also be easy to operate and maintain.
+The application originally used individually managed EC2 instances.
 
-To support this, the project implements standardized tagging across all Terraform-managed resources. Common tags are defined once using Terraform locals and merged into individual resources to ensure consistency without duplicating configuration.
+The architecture was refactored to use an Auto Scaling Group and Launch Template.
 
-This approach simplifies resource discovery, enables cost allocation, improves operational visibility, and mirrors governance practices commonly used within enterprise cloud environments.
+This provides:
 
----
+* Instance replacement
+* Health-based recovery
+* Multiple instances
+* Multi-AZ placement
+* Load balancer integration
+* Improved scalability
 
-# Screenshots
-
-## GitHub Actions Pipeline
-
-<p><img width="371" height="324" alt="image" src="https://github.com/user-attachments/assets/55102379-814c-4d69-8c52-b9de76fee36b" /></p>
-
-<p><img width="321" height="509" alt="image" src="https://github.com/user-attachments/assets/a4431f7e-1b60-4e61-9c3a-dceeea667183" /></p>
-
-<p><img width="314" height="430" alt="image" src="https://github.com/user-attachments/assets/568bb9fb-3cdc-4942-b282-487c57eff721" /></p>
-
-<p><img width="318" height="370" alt="image" src="https://github.com/user-attachments/assets/62240b42-5933-401c-8f75-eb6eb416b32c" /></p>
-
-<p><img width="322" height="320" alt="image" src="https://github.com/user-attachments/assets/8650c134-60dd-4fee-acbf-2a409103285c" /></p>
+Individual EC2 instances are now treated as disposable compute resources rather than long-lived Terraform-managed infrastructure objects.
 
 ---
 
-## Terraform Plan
+## Private Application Instances
 
-<img width="602" height="791" alt="image" src="https://github.com/user-attachments/assets/d8c049c0-821a-41cd-bbfa-cc63f23f484a" />
+Application instances are deployed into private subnets.
 
-<img width="602" height="763" alt="image" src="https://github.com/user-attachments/assets/ce3d7b40-769c-4449-b115-0e2946f1374c" />
+The Application Load Balancer provides the public entry point.
 
-<img width="601" height="778" alt="image" src="https://github.com/user-attachments/assets/8148386c-95cd-4096-a262-efbd47a78eb4" />
-
-<img width="604" height="779" alt="image" src="https://github.com/user-attachments/assets/de4c43a2-07c6-4228-8577-66c217c06c6e" />
-
-<img width="602" height="762" alt="image" src="https://github.com/user-attachments/assets/215d53b7-503e-4906-aea5-b8c26c02b096" />
-
-<img width="600" height="130" alt="image" src="https://github.com/user-attachments/assets/c5997006-13f8-474d-88c5-8669f39b957d" />
+This reduces the attack surface and creates a more realistic production architecture.
 
 ---
 
-## GitHub Environment Approval
+## Least Privilege IAM
 
-<img width="1551" height="682" alt="image" src="https://github.com/user-attachments/assets/efe8c319-4345-4503-9c30-8a640f48d9db" />
+IAM policies are intentionally limited to the permissions required by each component.
 
-<img width="630" height="380" alt="image" src="https://github.com/user-attachments/assets/d93cb42d-d3e4-4c88-9966-7b5ee50dcba9" />
+GitHub deployment roles and EC2 runtime roles are separate because they have different responsibilities.
+
+IAM policies will continue to evolve as the homelab introduces additional AWS services.
 
 ---
 
-## AWS EC2 Instance
+# Infrastructure Governance
 
-<img width="1027" height="165" alt="image" src="https://github.com/user-attachments/assets/8a9ddd8d-3b91-4531-8cb6-31981d333899" />
+Infrastructure should not only be automated—it should also be easy to operate, identify, and maintain.
+
+Terraform uses standardized AWS resource tagging.
+
+Common tags are configured through the AWS provider's `default_tags` mechanism.
+
+Typical tags include:
+
+| Tag            | Purpose                                     |
+| -------------- | ------------------------------------------- |
+| `Environment`  | Development or Production                   |
+| `Project`      | Identifies the Terraform CI/CD Demo project |
+| `Owner`        | Resource owner                              |
+| `ManagedBy`    | Indicates Terraform management              |
+| `Repository`   | Source GitHub repository                    |
+| `CostCenter`   | Cost allocation                             |
+| `AutoDeployed` | Indicates automated deployment              |
+
+Resource-specific tags can be added where additional identification is useful.
+
+The Auto Scaling Group also propagates appropriate tags to instances it launches.
+
+---
+
+# Cost Governance
+
+The homelab incorporates basic AWS cost governance practices to prevent infrastructure experimentation from becoming unexpectedly expensive.
+
+## Cost Allocation Tags
+
+AWS Cost Allocation Tags are used to associate infrastructure costs with the appropriate project and environment.
+
+This allows costs to be grouped and analyzed within AWS Cost Explorer.
+
+---
+
+## AWS Budgets
+
+AWS Budgets are used to provide proactive notifications when spending approaches the configured threshold.
+
+The goal is not to eliminate all cloud costs, but to provide an early warning system for unexpected resource consumption.
+
+---
+
+## Cost-Aware Infrastructure Design
+
+The architecture intentionally balances production-inspired design with homelab cost constraints.
+
+Examples include:
+
+* Using a small number of EC2 instances
+* Using appropriately sized instance types
+* Avoiding unnecessary managed services
+* Using separate IAM users/roles instead of maintaining multiple AWS accounts
+* Treating multi-account architecture as an enterprise concept while implementing it at homelab scale
 
 ---
 
 # Skills Demonstrated
 
-- AWS Infrastructure Provisioning
-- Infrastructure as Code (Terraform)
-- Modular Terraform Design
-- Remote Terraform State Management
-- Environment-specific Infrastructure
-- GitHub Actions CI/CD
-- Continuous Integration
-- Continuous Deployment
-- Infrastructure Quality Gates
-- Terraform Formatting and Validation
-- Terraform Linting with TFLint
-- Infrastructure Security Scanning with Checkov
-- Pull Request Based Deployment
-- GitHub Environment Protection
-- OpenID Connect (OIDC)
-- IAM Roles
-- AWS STS Temporary Credentials
-- Secure Cloud Authentication
-- Infrastructure Security
-- Ansible Configuration Management
-- YAML Validation
-- Git Feature Branch Workflow
-- Technical Documentation
-- AWS Resource Tagging
-- Cloud Cost Governance
-- AWS Budgets
-- Cost Allocation Tags
-- Terraform Locals
-- Terraform merge() Function
-- Infrastructure Governance
-- AWS IAM Policy Design
-- IAM Access Analyzer
-- Principle of Least Privilege
-- GitHub OIDC Federation
-- AWS VPC Networking
-- Public and Private Subnet Design
-- NAT Gateway Configuration
-- Elastic IP Management
-- Bastion Host Architecture
-- Network Security Design
-- AWS Route Tables
-- Infrastructure Network Segmentation
-- AWS Application Load Balancer
-- EC2 Launch Templates
-- Auto Scaling Groups
-- Multi-AZ Architecture
-- Target Group Configuration
-- ELB Health Checks
-- Automatic Instance Replacement
-- Self-Healing Infrastructure
-- High Availability Architecture
+* AWS Infrastructure Provisioning
+* Infrastructure as Code
+* Terraform
+* Terraform Modules
+* Terraform Remote State
+* Terraform State Locking
+* Environment Separation
+* Amazon VPC
+* Public and Private Subnets
+* Application Load Balancing
+* Auto Scaling Groups
+* EC2 Launch Templates
+* EC2 Instance Profiles
+* AWS IAM
+* IAM Least Privilege
+* AWS STS
+* GitHub Actions
+* GitHub Environment Protection
+* GitHub OpenID Connect
+* Temporary Cloud Credentials
+* Continuous Integration
+* Continuous Deployment
+* Infrastructure Quality Gates
+* Terraform Formatting and Validation
+* Terraform Linting
+* TFLint
+* Checkov
+* Infrastructure Security Scanning
+* Network Security
+* Security Group Design
+* IMDSv2
+* EBS Encryption
+* Ansible Configuration Management
+* YAML Validation
+* Git Feature Branch Workflow
+* AWS Resource Tagging
+* AWS Cost Governance
+* AWS Budgets
+* Cost Allocation Tags
+* Terraform Provider `default_tags`
+* Infrastructure Governance
+* Technical Documentation
 
 ---
 
 # Future Improvements
 
-Planned enhancements include:
+The next major phase of the project will begin introducing **Docker** into the existing infrastructure architecture.
 
-- Automated cost anomaly detection
-- AWS Cost and Usage Reports (CUR)
-- Policy-as-Code using Open Policy Agent (OPA)
-- Advanced Auto Scaling policies
-- Target tracking scaling policies
-- CloudWatch-based scaling metrics
-- Route 53 and DNS
-- TLS certificate management
-- Automated cost anomaly detection
-- AWS Cost and Usage Reports (CUR)
-- Policy-as-Code using Open Policy Agent (OPA)
-- AWS Organizations and true multi-account architecture (potentially, understand principle but want to avoid costs)
-- Kubernetes deployment
-- Monitoring and observability (Prometheus/Grafana)
-- Centralized logging
-- Advanced Terraform testing frameworks
-- Route 53 and DNS
-- TLS certificate management
-- AWS Organizations and true multi-account architecture (potentially, understand principle but want to avoid costs)
-- Kubernetes deployment
-- Monitoring and observability (Prometheus/Grafana)
-- Centralized logging
-- Advanced Terraform testing frameworks
+Planned improvements include:
+
+* Containerizing the application
+* Building Docker images
+* Running Docker containers on the EC2 instances
+* Integrating Docker with the existing Auto Scaling architecture
+* Improving container deployment automation
+* Container image security scanning
+* Application health checks
+* Automated image builds through GitHub Actions
+* Application Load Balancer integration with containerized workloads
+
+Longer-term improvements may include:
+
+* Automated cost anomaly detection
+* AWS Cost and Usage Reports
+* Policy-as-Code using Open Policy Agent
+* Route 53 and DNS
+* TLS certificate management
+* Multi-account AWS deployment
+* Kubernetes
+* Prometheus/Grafana monitoring
+* Centralized logging
+* Advanced Terraform testing
+* Container orchestration
 
 ---
 
@@ -1430,47 +1235,57 @@ Building this project reinforced several important DevOps concepts:
 * Validation, planning, and deployment should be separate stages within a CI/CD pipeline.
 * Secrets should never be committed to source control.
 * Short-lived credentials are preferred over long-lived access keys.
+* GitHub OIDC provides a modern approach to CI/CD cloud authentication.
 * Infrastructure changes should be reviewed before deployment.
 * Automated quality gates improve reliability and reduce deployment risk.
-* Security scanning should be integrated into the development workflow rather than performed after deployment.
-* Modular infrastructure is easier to maintain than large monolithic Terraform configurations.
-* Separating configuration from infrastructure code enables consistent multi-environment deployments.
-* Deployment approvals provide an additional layer of operational safety for automated infrastructure changes.
+* Security scanning should be integrated into the development workflow.
+* Least-privilege IAM requires continuous review rather than a one-time configuration.
+* Public and private network boundaries reduce infrastructure exposure.
+* Load balancers should communicate with application security groups rather than exposing application instances directly.
+* Auto Scaling Groups allow individual instances to be treated as disposable infrastructure.
+* Launch Templates provide a reusable definition for application compute.
+* Infrastructure modules improve maintainability and reduce duplication.
+* Separate Terraform state prevents environments from unintentionally managing each other's resources.
+* Environment-specific configuration allows the same Terraform codebase to support multiple deployment targets.
+* Production approval gates provide an additional operational safeguard.
+* Cost governance is an important part of responsible cloud engineering.
+* Production-inspired architecture can be implemented at homelab scale without reproducing every enterprise cost or operational requirement.
 * Well-documented projects are easier to maintain, troubleshoot, and demonstrate to prospective employers.
 
 ---
 
 # Project Evolution
 
-This repository has been intentionally developed in iterative stages to reflect how infrastructure evolves in real-world engineering environments.
+This repository has intentionally been developed in iterative stages to demonstrate how infrastructure evolves as new DevOps practices are introduced.
 
 Major milestones include:
 
 1. Basic Terraform infrastructure deployment
 2. Remote Terraform state with Amazon S3
 3. CI/CD integration with GitHub Actions
-4. Automated Terraform validation and planning workflows
-5. Environment-specific configuration
-6. Modular Terraform architecture
-7. Manual deployment approvals
-8. Migration from IAM user credentials to GitHub OIDC authentication
-9. Environment-specific IAM roles using temporary AWS credentials
-10. Automated infrastructure quality gates
-11. Terraform linting with TFLint
-12. Infrastructure security scanning with Checkov
-13. Cloud governance and standardized resource tagging
-14. Least-privilege IAM with customer-managed policies and IAM Access Analyzer
-15. Custom VPC Network with public and private subnets create
-16. Internet and Nat gateway created
-17. demonstrated that custom terraform modules can be used to create multiple resources and attach them to the correct subnets
-18. Migrated private instance administration from SSH-based access to AWS Systems Manager Session Manager
-19. Implemented IAM instance roles for secure EC2 authentication without stored credentials
-20. Implemented an Application Load Balancer and Target Group architecture
-21. Implemented EC2 Launch Templates and Auto Scaling Groups
-22. Implemented Multi-AZ application deployment and health checks
-23. Implemeneted automatic instance replacement and self-healing infrastructure
+4. Automated Terraform validation and planning
+5. Environment-specific Terraform configuration
+6. Separate Development and Production Terraform state
+7. Modular Terraform architecture
+8. VPC and subnet architecture
+9. Private application networking
+10. Dedicated security group module
+11. Dedicated IAM module
+12. Application Load Balancer
+13. Auto Scaling Group architecture
+14. EC2 Launch Template
+15. Migration from IAM user credentials to GitHub OIDC
+16. Environment-specific IAM deployment roles
+17. GitHub Environment production approval
+18. Terraform linting with TFLint
+19. Infrastructure security scanning with Checkov
+20. Automated infrastructure quality gates
+21. AWS resource tagging and cost governance
+22. Refactoring from standalone EC2 instances to Auto Scaling managed compute
+23. Launch Template security hardening
+24. IAM and Terraform dependency cleanup
 
-Future phases will focus on infrastructure testing, advanced AWS networking and application resilience, Kubernetes, observability, and production-grade operational practices.
+The next major phase will transition the application workload toward Docker while retaining the Terraform, networking, IAM, ALB, ASG, and CI/CD foundations established during the previous phases.
 
 ---
 

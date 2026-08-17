@@ -46,3 +46,8 @@ variable "desired_size" {
 variable "max_size" {
   type = string
 }
+
+variable "root_volume_size" {
+  type    = number
+  default = 8
+}

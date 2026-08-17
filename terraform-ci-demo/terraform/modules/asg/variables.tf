@@ -45,3 +45,9 @@ variable "desired_size" {
 variable "max_size" {
   type = string
 }
+
+variable "root_volume_size" {
+  description = "Size of the root EBS volume in GiB"
+  type        = number
+  default     = 8
+}
