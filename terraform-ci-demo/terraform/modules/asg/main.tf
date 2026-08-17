@@ -12,6 +12,17 @@ resource "aws_launch_template" "application" {
     var.application_security_group_id
   ]
 
+  block_device_mappings {
+    device_name = "/dev/sda1"
+
+    ebs {
+      volume_size           = var.root_volume_size
+      volume_type           = "gp3"
+      encrypted             = true
+      delete_on_termination = true
+    }
+  }
+
   user_data = base64encode(var.user_data)
 
   metadata_options {
